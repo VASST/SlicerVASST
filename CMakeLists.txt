@@ -13,7 +13,7 @@ set(EXTENSION_SCREENSHOTURLS "http://www.example.com/Slicer/Extensions/SlicerVAS
 set(EXTENSION_DEPENDS "NA") # NA if none
 set(EXTENSION_BUILD_SUBDIRECTORY inner-build)
 
-set(SUPERBUILD_TOPLEVEL_PROJECT RobartsVTK)
+set(SUPERBUILD_TOPLEVEL_PROJECT SlicerVASST)
 
 #-----------------------------------------------------------------------------
 # Extension dependencies
@@ -32,6 +32,11 @@ if(${EXTENSION_NAME}_SUPERBUILD)
   include("${CMAKE_CURRENT_SOURCE_DIR}/SuperBuild.cmake")
   return()
 endif()
+
+#-----------------------------------------------------------------------------
+# Extension modules
+add_subdirectory(GuidedUSRegistration)
+## NEXT_MODULE
 
 #-----------------------------------------------------------------------------
 set(CPACK_INSTALL_CMAKE_PROJECTS "${CPACK_INSTALL_CMAKE_PROJECTS};${CMAKE_BINARY_DIR};${EXTENSION_NAME};ALL;/")

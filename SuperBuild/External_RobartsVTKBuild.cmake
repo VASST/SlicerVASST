@@ -1,5 +1,5 @@
 
-set(proj Foo)
+set(proj RobartsVTKBuild)
 
 # Set dependency list
 set(${proj}_DEPENDS "")
@@ -12,8 +12,8 @@ if(${CMAKE_PROJECT_NAME}_USE_SYSTEM_${proj})
 endif()
 
 # Sanity checks
-if(DEFINED Foo_DIR AND NOT EXISTS ${Foo_DIR})
-  message(FATAL_ERROR "Foo_DIR variable is defined but corresponds to nonexistent directory")
+if(DEFINED RobartsVTKBuild_DIR AND NOT EXISTS ${RobartsVTKBuild_DIR})
+  message(FATAL_ERROR "RobartsVTKBuild_DIR variable is defined but corresponds to nonexistent directory")
 endif()
 
 if(NOT DEFINED ${proj}_DIR AND NOT ${CMAKE_PROJECT_NAME}_USE_SYSTEM_${proj})
@@ -24,11 +24,12 @@ if(NOT DEFINED ${proj}_DIR AND NOT ${CMAKE_PROJECT_NAME}_USE_SYSTEM_${proj})
 
   ExternalProject_Add(${proj}
     ${${proj}_EP_ARGS}
-    #GIT_REPOSITORY "${git_protocol}://github.com/Foo/Foo.git"
-    #GIT_TAG "1e823001cb41c92667299635643f1007876d09f6"
-    DOWNLOAD_COMMAND ${CMAKE_COMMAND} -E echo "Remove this line and uncomment GIT_REPOSITORY and GIT_TAG"
     SOURCE_DIR ${CMAKE_BINARY_DIR}/${proj}
     BINARY_DIR ${proj}-build
+    #--Download step--------------
+    GIT_REPOSITORY http://Git.imaging.robarts.ca/vasst/RobartsVTKBuild.git
+    GIT_TAG "master"
+    #--Configure step-------------
     CMAKE_CACHE_ARGS
       -DCMAKE_CXX_COMPILER:FILEPATH=${CMAKE_CXX_COMPILER}
       -DCMAKE_CXX_FLAGS:STRING=${ep_common_cxx_flags}
@@ -36,13 +37,22 @@ if(NOT DEFINED ${proj}_DIR AND NOT ${CMAKE_PROJECT_NAME}_USE_SYSTEM_${proj})
       -DCMAKE_C_FLAGS:STRING=${ep_common_c_flags}
       -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
       -DBUILD_TESTING:BOOL=OFF
-    CONFIGURE_COMMAND ${CMAKE_COMMAND} -E echo
-      "This CONFIGURE_COMMAND is just here as a placeholder."
-      "Remove this line to enable configuring of a real CMake based external project"
-    BUILD_COMMAND ${CMAKE_COMMAND} -E echo
-      "This BUILD_COMMAND is just here as a placeholder."
-      "Remove this line to enable building of a real CMake based external project"
-    INSTALL_COMMAND ""
+      -DSlicer_DIR:PATH=${Slicer_DIR}
+      -DRobartsVTK_USE_REGISTRATION:BOOL=ON 
+      -DRobartsVTK_Include_Outdated_Registration:BOOL=OFF 
+      -DRobartsVTK_USE_COMMON:BOOL=ON 
+      -DRobartsVTK_USE_CUDA:BOOL=ON 
+      -DRobartsVTK_USE_CUDA_VISUALIZATION:BOOL=ON 
+      -DRobartsVTK_USE_CUDA_ANALYTICS:BOOL=ON 
+      -DRobartsVTK_WRAP_PYTHON:BOOL=ON 
+      -DRobartsVTK_BUILD_EXAMPLES:BOOL=ON 
+      -DBUILD_SHARED_LIBS:BOOL=ON 
+      -DPYTHON_INCLUDE_DIRS:STRING=${PYTHON_INCLUDE_DIRS}
+      -DPYTHON_LIBRARY:FILEPATH=${PYTHON_LIBRARY}
+      -DPYTHON_EXECUTABLE:FILEPATH=${PYTHON_EXECUTABLE}
+      -DQT_QMAKE_EXECUTABLE:FILEPATH=${QT_QMAKE_EXECUTABLE}
+    #--Install step-----------------
+    INSTALL_COMMAND "" # Do not install
     DEPENDS
       ${${proj}_DEPENDS}
     )
