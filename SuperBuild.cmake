@@ -26,7 +26,7 @@ foreach(dep ${EXTENSION_DEPENDS})
 endforeach()
 
 set(proj ${SUPERBUILD_TOPLEVEL_PROJECT})
-set(${proj}_DEPENDS "RobartsVTKBuild") # Add dependent projects (will look for External_XYZ.cmake in SuperBuild directory)
+set(${proj}_DEPENDS "RobartsVTKLib") # Add dependent projects (will look for External_XYZ.cmake in SuperBuild directory)
 
 ExternalProject_Include_Dependencies(${proj}
   PROJECT_VAR proj

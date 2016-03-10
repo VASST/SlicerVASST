@@ -1,5 +1,4 @@
-
-set(proj RobartsVTKBuild)
+set(proj RobartsVTKLib)
 
 # Set dependency list
 set(${proj}_DEPENDS "")
@@ -12,8 +11,8 @@ if(${CMAKE_PROJECT_NAME}_USE_SYSTEM_${proj})
 endif()
 
 # Sanity checks
-if(DEFINED RobartsVTKBuild_DIR AND NOT EXISTS ${RobartsVTKBuild_DIR})
-  message(FATAL_ERROR "RobartsVTKBuild_DIR variable is defined but corresponds to nonexistent directory")
+if(DEFINED RobartsVTKLib_DIR AND NOT EXISTS ${RobartsVTKLib_DIR})
+  message(FATAL_ERROR "RobartsVTKLib_DIR variable is defined but corresponds to nonexistent directory")
 endif()
 
 if(NOT DEFINED ${proj}_DIR AND NOT ${CMAKE_PROJECT_NAME}_USE_SYSTEM_${proj})
@@ -27,7 +26,7 @@ if(NOT DEFINED ${proj}_DIR AND NOT ${CMAKE_PROJECT_NAME}_USE_SYSTEM_${proj})
     SOURCE_DIR ${CMAKE_BINARY_DIR}/${proj}
     BINARY_DIR ${proj}-build
     #--Download step--------------
-    GIT_REPOSITORY http://Git.imaging.robarts.ca/vasst/RobartsVTKBuild.git
+    GIT_REPOSITORY http://Git.imaging.robarts.ca/vasst/RobartsVTK.git
     GIT_TAG "master"
     #--Configure step-------------
     CMAKE_CACHE_ARGS
@@ -37,15 +36,20 @@ if(NOT DEFINED ${proj}_DIR AND NOT ${CMAKE_PROJECT_NAME}_USE_SYSTEM_${proj})
       -DCMAKE_C_FLAGS:STRING=${ep_common_c_flags}
       -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
       -DBUILD_TESTING:BOOL=OFF
-      -DSlicer_DIR:PATH=${Slicer_DIR}
-      -DRobartsVTK_USE_REGISTRATION:BOOL=ON 
-      -DRobartsVTK_Include_Outdated_Registration:BOOL=OFF 
-      -DRobartsVTK_USE_COMMON:BOOL=ON 
-      -DRobartsVTK_USE_CUDA:BOOL=ON 
-      -DRobartsVTK_USE_CUDA_VISUALIZATION:BOOL=ON 
-      -DRobartsVTK_USE_CUDA_ANALYTICS:BOOL=ON 
-      -DRobartsVTK_WRAP_PYTHON:BOOL=ON 
-      -DRobartsVTK_BUILD_EXAMPLES:BOOL=ON 
+      -DRobartsVTK_USE_QT:BOOL=ON
+      -DRobartsVTK_USE_ITK:BOOL=ON
+      -DVTK_DIR:PATH=${VTK_DIR}
+      -DITK_DIR:PATH=${ITK_DIR}
+      -DRobartsVTK_USE_PLUS:BOOL=OFF
+      -DRobartsVTK_USE_REGISTRATION:BOOL=ON
+      -DRobartsVTK_Include_Outdated_Registration:BOOL=OFF
+      -DRobartsVTK_USE_COMMON:BOOL=ON
+      -DRobartsVTK_USE_CUDA:BOOL=ON
+      -DRobartsVTK_USE_CUDA_VISUALIZATION:BOOL=ON
+      -DRobartsVTK_USE_CUDA_ANALYTICS:BOOL=ON
+      -DRobartsVTK_USE_QT5_ONLY:BOOL=OFF
+      -DRobartsVTK_BUILD_EXAMPLES:BOOL=OFF
+      -DRobartsVTK_WRAP_PYTHON:BOOL=ON
       -DBUILD_SHARED_LIBS:BOOL=ON 
       -DPYTHON_INCLUDE_DIRS:STRING=${PYTHON_INCLUDE_DIRS}
       -DPYTHON_LIBRARY:FILEPATH=${PYTHON_LIBRARY}
