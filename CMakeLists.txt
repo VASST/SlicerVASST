@@ -36,6 +36,7 @@ endif()
 #-----------------------------------------------------------------------------
 # Extension modules
 add_subdirectory(GuidedUSRegistration)
+add_subdirectory(LapUSVisualization)
 ## NEXT_MODULE
 
 #-----------------------------------------------------------------------------
