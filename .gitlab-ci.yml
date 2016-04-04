@@ -4,6 +4,7 @@ build-ubuntu-slicer:
     - slicerVasst_release.sh
   tags:
     - cmake
+    - ubuntu
     - gcc
     - slicer
   only:
