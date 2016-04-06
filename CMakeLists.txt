@@ -8,7 +8,7 @@ set(EXTENSION_HOMEPAGE "http://slicer.org/slicerWiki/index.php/Documentation/Nig
 set(EXTENSION_CATEGORY "Registration;Segmentation;Visualization")
 set(EXTENSION_CONTRIBUTORS "Adam Rankin (Robarts Research Institute)")
 set(EXTENSION_DESCRIPTION "This extension contains a number of modules developed by the VASST laboratory at the Robarts Research Institute. It provides access to RobartsVTK, a library for visualization and image processing.")
-set(EXTENSION_ICONURL "http://www.example.com/Slicer/Extensions/SlicerVASST.png")
+set(EXTENSION_ICONURL "http://git.imaging.robarts.ca/vasst/SlicerVASST/blob/462fd66c1ff9736cc73976b96963aafa80a113ac/docs/images/SlicerVASST_logo.png")
 set(EXTENSION_SCREENSHOTURLS "http://www.example.com/Slicer/Extensions/SlicerVASST/Screenshots/1.png")
 set(EXTENSION_DEPENDS "NA") # NA if none
 set(EXTENSION_BUILD_SUBDIRECTORY inner-build)
