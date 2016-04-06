@@ -46,7 +46,6 @@ if(NOT DEFINED ${proj}_DIR AND NOT ${CMAKE_PROJECT_NAME}_USE_SYSTEM_${proj})
       -DITK_DIR:PATH=${ITK_DIR}
       -DRobartsVTK_USE_PLUS:BOOL=OFF
       -DRobartsVTK_USE_REGISTRATION:BOOL=ON
-      -DRobartsVTK_Include_Outdated_Registration:BOOL=OFF
       -DRobartsVTK_USE_COMMON:BOOL=ON
       -DRobartsVTK_USE_CUDA:BOOL=ON
       -DRobartsVTK_USE_CUDA_VISUALIZATION:BOOL=ON
