@@ -20,6 +20,10 @@ if(NOT DEFINED ${proj}_DIR AND NOT ${CMAKE_PROJECT_NAME}_USE_SYSTEM_${proj})
   if(NOT DEFINED git_protocol)
     set(git_protocol "git")
   endif()
+  
+  if(NOT WIN32)
+    set(ep_common_cxx_flags "${ep_common_cxx_flags} -std=c++11")
+  endif()
 
   ExternalProject_Add(${proj}
     ${${proj}_EP_ARGS}
