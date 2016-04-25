@@ -10,10 +10,10 @@ import logging
 class NeoGuidance(ScriptedLoadableModule):
   def __init__(self, parent):
     ScriptedLoadableModule.__init__(self, parent)
-    self.parent.title = "NeoGuidance" # TODO make this more human readable by adding spaces
+    self.parent.title = "NeoChord Guidance"
     self.parent.categories = ["IGT"]
     self.parent.dependencies = []
-    self.parent.contributors = ["Adam Rankin (Robarts Research Institute)"]
+    self.parent.contributors = ["Adam Rankin, Jonathan McLeod (Robarts Research Institute)"]
     self.parent.helpText = """This extensions enables surgical guidance for NeoChord surgical procedures."""
     self.parent.acknowledgementText = """NSERC, etc..."""
 
@@ -38,6 +38,14 @@ class NeoGuidanceWidget(ScriptedLoadableModuleWidget):
     parametersFormLayout = qt.QFormLayout(parametersCollapsibleButton)
     parametersFormLayout.setContentsMargins(8,8,8,8)
 
+    frame = qt.QWidget()
+    layout = qt.QHBoxLayout(frame)
+    layout.setContentsMargins(0,0,0,0)
+    layout.addStretch()
+    layout.addWidget(qt.QLabel("Transforms"))
+    layout.addStretch()
+    parametersFormLayout.addRow(frame)
+    
     #
     # 6DOF transform selector
     #
@@ -68,6 +76,29 @@ class NeoGuidanceWidget(ScriptedLoadableModuleWidget):
     self.fiveDOFTransformSelector.setToolTip( "Pick the transform describing the 5DOF sensor." )
     parametersFormLayout.addRow("5DOF Transform: ", self.fiveDOFTransformSelector)
 
+    frame = qt.QWidget()
+    layout = qt.QHBoxLayout(frame)
+    layout.setContentsMargins(0,0,0,0)
+    layout.addStretch()
+    layout.addWidget(qt.QLabel("Images"))
+    layout.addStretch()
+    parametersFormLayout.addRow(frame)
+
+    #
+    # input volume selector
+    #
+    self.inputVolumeSelector = slicer.qMRMLNodeComboBox()
+    self.inputVolumeSelector.nodeTypes = ["vtkMRMLScalarVolumeNode"]
+    self.inputVolumeSelector.selectNodeUponCreation = True
+    self.inputVolumeSelector.addEnabled = False
+    self.inputVolumeSelector.removeEnabled = False
+    self.inputVolumeSelector.noneEnabled = True
+    self.inputVolumeSelector.showHidden = False
+    self.inputVolumeSelector.showChildNodeTypes = False
+    self.inputVolumeSelector.setMRMLScene( slicer.mrmlScene )
+    self.inputVolumeSelector.setToolTip( "Pick the volume from the ICE transducer." )
+    parametersFormLayout.addRow("ICE Image: ", self.inputVolumeSelector)
+
     #
     # mask volume selector
     #
@@ -84,6 +115,22 @@ class NeoGuidanceWidget(ScriptedLoadableModuleWidget):
     parametersFormLayout.addRow("ICE Mask: ", self.maskVolumeSelector)
 
     #
+    # output volume selector
+    #
+    self.outputVolumeSelector = slicer.qMRMLNodeComboBox()
+    self.outputVolumeSelector.nodeTypes = ["vtkMRMLScalarVolumeNode"]
+    self.outputVolumeSelector.selectNodeUponCreation = True
+    self.outputVolumeSelector.addEnabled = True
+    self.outputVolumeSelector.renameEnabled = True
+    self.outputVolumeSelector.removeEnabled = False
+    self.outputVolumeSelector.noneEnabled = True
+    self.outputVolumeSelector.showHidden = False
+    self.outputVolumeSelector.showChildNodeTypes = False
+    self.outputVolumeSelector.setMRMLScene( slicer.mrmlScene )
+    self.outputVolumeSelector.setToolTip( "Pick the volume for the masked output. Will be transformed." )
+    parametersFormLayout.addRow("Masked Output: ", self.outputVolumeSelector)
+
+    #
     # Actions Area
     #
     actionsCollapsibleButton = ctk.ctkCollapsibleButton()
@@ -97,10 +144,10 @@ class NeoGuidanceWidget(ScriptedLoadableModuleWidget):
     #
     # Zero Button
     #
-    self.zeroButton = qt.QPushButton("Zero Jaws")
+    self.zeroButton = qt.QPushButton("Zero")
     self.zeroButton.toolTip = "Calibrate the jaws to the home position."
     self.zeroButton.enabled = False
-    actionsFormLayout.addRow("Zero jaws: ", self.zeroButton)
+    actionsFormLayout.addRow("Zero Jaws: ", self.zeroButton)
 
     #
     # UI Buttons
@@ -169,13 +216,108 @@ class NeoGuidanceWidget(ScriptedLoadableModuleWidget):
     slicer.util.mainWindow().StatusBar.show()
     slicer.util.mainWindow().menubar.show()
     slicer.util.mainWindow().PanelDockWidget.dockWidgetContents.ModulePanel.ScrollArea.qt_scrollarea_viewport.scrollAreaWidgetContents.HelpCollapsibleButton.show()
-    slicer.util.mainWindow().PanelDockWidget.dockWidgetContents.LogoLabel.hide()
+    slicer.util.mainWindow().PanelDockWidget.dockWidgetContents.LogoLabel.show()
 
 #
 # NeoGuidanceLogic
 #
 class NeoGuidanceLogic(ScriptedLoadableModuleLogic):
-  pass
+  def __init__(self):
+    # TODO : trasnform hierarchy needs to be managed when nodes are selected/deselected
+
+    # Find or create the 6DOFCalculatedTo5DOF transform
+    self.SixCalculatedToFiveTransform = slicer.util.getNode("sixCalculatedToFiveTransform")
+    if self.SixCalculatedToFiveTransform == None:
+      # Create the node
+      self.SixCalculatedToFiveTransform = slicer.vtkMRMLLinearTransformNode()
+      self.SixCalculatedToFiveTransform.SetName("sixCalculatedToFiveTransform")
+      slicer.mrmlScene.AddNode(self.SixCalculatedToFiveTransform)
+
+    self.baseSixDOFTo5DOFZOffset = 0.0
+    self.imageObserverTag = None
+    self.fiveDOFObserverTag = None
+
+    self.imageToStencil = vtk.vtkImageToImageStencil()
+    self.imageToStencil.ThresholdByUpper(254)
+
+    self.imageStencil = vtk.vtkImageStencil()
+    self.imageStencil.SetStencilConnection(self.imageToStencil.GetOutputPort())
+    self.imageStencil.SetBackgroundValue(0)
+
+  def SetInputVolumeNode(self, inputVolumeNode):
+    if self.inputVolumeNode != inputVolumeNode:
+      # Clean up observers, switch node
+      self.inputVolumeNode.RemoveObserver(self.imageObserverTag)
+      self.inputVolumeNode = outputVolumeNode
+      self.imageObserverTag = self.inputVolumeNode.AddObserver(vtk.vtkCommand.ModifiedEvent, self.onImageModified)
+
+    self.imageStencil.SetInputDataObject(self.inputVolumeNode.GetImageData())
+
+  def onImageModified(imageNode, event):
+    if self.outputVolumeNode == None or self.maskVolumeNode == None:
+      return
+
+    self.outputVolumeNode.CopyOrientation(self.inputVolumeNode)
+    self.imageStencil.SetInputDataObject(self.inputVolumeNode.GetImageData())
+    self.imageStencil.Update()
+      
+  def SetOutputVolumeNode(self, outputVolumeNode):
+    pass
+
+  def SetMaskVolumeNode(self, maskVolumeNode):
+    self.maskVolumeNode = maskVolumeNode
+    self.imageToStencil.SetInputDataObject(self.maskVolumeNode)
+    self.imageToStencil.Update()
+
+  def SetSixDOFTransformNode(self, sixDOFNode):
+    self.sixDOFTransformNode = sixDOFNode
+
+  def SetFiveDOFTransformNode(self, fiveDOFNode):
+    if self.fiveDOFTransformNode != fiveDOFNode:
+      # Clean up observers, switch node
+      self.fiveDOFTransformNode.RemoveObserver(self.fiveDOFObserverTag)
+      self.fiveDOFTransformNode = fiveDOFNode
+      self.fiveDOFObserverTag = self.fiveDOFTransformNode.AddObserver(vtk.vtkCommand.ModifiedEvent, self.onFiveDOFModified)
+
+  def onFiveDOFModified(transformNode, event):
+    if self.sixDOFTransformNode == None or self.fiveDOFTransformNode == None:
+      return
+
+    fiveDOFToReference = vtk.vtkMatrix4x4()
+    fiveDOFTransformNode.GetMatrixTransformToParent(fiveDOFToReference)
+    sixDOFToReference = vtk.vtkMatrix4x4()
+    sixDOFTransformNode.GetMatrixTransformToParent(sixDOFToReference)
+    referenceToFiveDOF = vtk.vtkMatrix4x4()
+    referenceToFiveDOF.DeepCopy(fiveDOFToReference)
+    referenceToFiveDOF.Invert();
+
+    originSixDOF = [0.0, 0.0, 0.0, 1.0]
+    sixDOFOriginInRef = [0.0,0.0,0.0,1.0]
+    sixDOFOriginInFiveDOF = [0.0, 0.0, 0.0, 1.0]
+    sixDOFToReference.MultiplyPoint(originSixDOF, sixDOFOriginInRef)
+    referenceToFiveDOF.MultiplyPoint(sixDOFOriginInRef, sixDOFOriginInFiveDOF)
+    sixDOFCalculatedToFiveDOF = vtk.vtkMatrix4x4()
+    sixDOFCalculatedToFiveDOF.SetElement(2,3, sixDOFOriginInFiveDOF[2] - baseSixDOFTo5DOFZOffset)
+    self.SixCalculatedToFiveTransform.SetMatrixTransformToParent(sixDOFCalculatedToFiveDOF)
+
+  def zeroJawsCalibration():
+    if self.sixDOFTransformNode == None or self.fiveDOFTransformNode == None:
+      return
+
+    fiveDOFToReference = vtk.vtkMatrix4x4()
+    fiveDOFTransformNode.GetMatrixTransformToParent(fiveDOFToReference)
+    sixDOFToReference = vtk.vtkMatrix4x4()
+    sixDOFTransformNode.GetMatrixTransformToParent(sixDOFToReference)
+    referenceToFiveDOF = vtk.vtkMatrix4x4()
+    referenceToFiveDOF.DeepCopy(fiveDOFToReference)
+    referenceToFiveDOF.Invert();
+
+    originSixDOF = [0.0, 0.0, 0.0, 1.0]
+    sixDOFOriginInRef = [0.0,0.0,0.0,1.0]
+    sixDOFOriginInFiveDOF = [0.0, 0.0, 0.0, 1.0]
+    sixDOFToReference.MultiplyPoint(originSixDOF, sixDOFOriginInRef)
+    referenceToFiveDOF.MultiplyPoint(sixDOFOriginInRef, sixDOFOriginInFiveDOF)
+    self.baseSixDOFTo5DOFZOffset = sixDOFOriginInFiveDOF[2]
 
 #
 # NeoGuidanceTest
