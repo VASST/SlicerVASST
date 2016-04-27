@@ -26,6 +26,11 @@ class NeoGuidance(ScriptedLoadableModule):
 #
 #-------------------------------------------------------
 class NeoGuidanceWidget(ScriptedLoadableModuleWidget):
+  #-------------------------------------------------------------------------------
+  def _loadPixmap(self, param):
+    iconPath = os.path.join(os.path.dirname(slicer.modules.neoguidance.path), 'Resources/Icons/', param+".png")
+    return qt.QIcon(iconPath)
+
   #-------------------------------------------------------
   def setup(self):
     ScriptedLoadableModuleWidget.setup(self)
@@ -137,6 +142,38 @@ class NeoGuidanceWidget(ScriptedLoadableModuleWidget):
     parametersFormLayout.addRow("Masked Output: ", self.outputVolumeSelector)
 
     #
+    # nose model selector
+    #
+    self.noseModelSelector = slicer.qMRMLNodeComboBox()
+    self.noseModelSelector.nodeTypes = ["vtkMRMLModelNode"]
+    self.noseModelSelector.selectNodeUponCreation = True
+    self.noseModelSelector.addEnabled = False
+    self.noseModelSelector.renameEnabled = False
+    self.noseModelSelector.removeEnabled = False
+    self.noseModelSelector.noneEnabled = True
+    self.noseModelSelector.showHidden = False
+    self.noseModelSelector.showChildNodeTypes = False
+    self.noseModelSelector.setMRMLScene( slicer.mrmlScene )
+    self.noseModelSelector.setToolTip( "Select the nose model." )
+    parametersFormLayout.addRow("Nose Model: ", self.noseModelSelector)
+
+    #
+    # jaw model selector
+    #
+    self.jawModelSelector = slicer.qMRMLNodeComboBox()
+    self.jawModelSelector.nodeTypes = ["vtkMRMLModelNode"]
+    self.jawModelSelector.selectNodeUponCreation = True
+    self.jawModelSelector.addEnabled = False
+    self.jawModelSelector.renameEnabled = False
+    self.jawModelSelector.removeEnabled = False
+    self.jawModelSelector.noneEnabled = True
+    self.jawModelSelector.showHidden = False
+    self.jawModelSelector.showChildNodeTypes = False
+    self.jawModelSelector.setMRMLScene( slicer.mrmlScene )
+    self.jawModelSelector.setToolTip( "Select the jaw model." )
+    parametersFormLayout.addRow("Jaw Model: ", self.jawModelSelector)
+
+    #
     # Actions Area
     #
     actionsCollapsibleButton = ctk.ctkCollapsibleButton()
@@ -153,7 +190,14 @@ class NeoGuidanceWidget(ScriptedLoadableModuleWidget):
     self.zeroButton = qt.QPushButton("Zero")
     self.zeroButton.toolTip = "Calibrate the jaws to the home position."
     self.zeroButton.enabled = False
-    actionsFormLayout.addRow("Zero Jaws: ", self.zeroButton)
+
+    frame = qt.QWidget()
+    layout = qt.QHBoxLayout(frame)
+    layout.setContentsMargins(0,0,0,0)
+    layout.addWidget(qt.QLabel("Zero Jaws:"))
+    layout.addStretch()
+    layout.addWidget(self.zeroButton)
+    actionsFormLayout.addRow(frame)
 
     #
     # UI Buttons
@@ -167,6 +211,7 @@ class NeoGuidanceWidget(ScriptedLoadableModuleWidget):
     frame = qt.QWidget()
     layout = qt.QHBoxLayout(frame)
     layout.setContentsMargins(0,0,0,0)
+    layout.addStretch()
     layout.addWidget(self.minUIButton)
     layout.addWidget(self.normalUIButton)
     actionsFormLayout.addRow(frame)
@@ -174,16 +219,22 @@ class NeoGuidanceWidget(ScriptedLoadableModuleWidget):
     #
     # On/Off Button
     #
-
-
-    # TODO FINISH THIS BUTTON/LOGIC
     self.onOffButton = qt.QPushButton("Turn On")
-    self.zeroButton.toolTip = "Calibrate the jaws to the home position."
-    self.zeroButton.enabled = False
-    actionsFormLayout.addRow("Zero Jaws: ", self.zeroButton)
+    self.onOffButton.toolTip = "Toggle guidance."
+    self.onOffButton.enabled = False
+    self.onOffButton.icon = self._loadPixmap( "off" )
+
+    frame = qt.QWidget()
+    layout = qt.QHBoxLayout(frame)
+    layout.setContentsMargins(0,0,0,0)
+    layout.addWidget(qt.QLabel("Guidance:"))
+    layout.addStretch()
+    layout.addWidget(self.onOffButton)
+    actionsFormLayout.addRow(frame)
 
     # connections
     self.zeroButton.connect('clicked(bool)', self.onZeroButtonClicked)
+    self.onOffButton.connect('clicked(bool)', self.onOffToggleButtonClicked)
     self.minUIButton.connect('clicked(bool)', self.onMinUIButtonClicked)
     self.normalUIButton.connect('clicked(bool)', self.onNormUIButtonClicked)
     self.sixDOFTransformSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onSixDOFSelectorChanged)
@@ -191,6 +242,8 @@ class NeoGuidanceWidget(ScriptedLoadableModuleWidget):
     self.maskVolumeSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onMaskSelectorChanged)
     self.inputVolumeSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onInputSelectorChanged)
     self.outputVolumeSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onOutputSelectorChanged)
+    self.jawModelSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onJawModelSelectorChanged)
+    self.noseModelSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onNoseModelSelectorChanged)
 
     # Add vertical spacer
     self.layout.addStretch(1)
@@ -224,16 +277,38 @@ class NeoGuidanceWidget(ScriptedLoadableModuleWidget):
     self.onSelect()
 
   #-------------------------------------------------------
+  def onJawModelSelectorChanged(self, newNode):
+    #TODO link transform hierarchy to new nose model
+    self.onSelect()
+
+  #-------------------------------------------------------
+  def onNoseModelSelectorChanged(self, newNode):
+    #TODO link transform hierarchy to new nose model
+    self.onSelect()
+
+  #-------------------------------------------------------
   def cleanup(self):
     pass
 
   #-------------------------------------------------------
   def onSelect(self):
-    self.zeroButton.enabled = self.sixDOFTransformSelector.currentNode() and self.fiveDOFTransformSelector.currentNode() and self.maskVolumeSelector.currentNode() and self.inputVolumeSelector.currentNode() and self.outputVolumeSelector.currentNode()
+    self.zeroButton.enabled = self.sixDOFTransformSelector.currentNode() and self.fiveDOFTransformSelector.currentNode() and self.maskVolumeSelector.currentNode() and self.inputVolumeSelector.currentNode() and self.outputVolumeSelector.currentNode() and self.noseModelSelector.currentNode() and self.jawModelSelector.currentNode()
+    self.onOffButton.enabled = self.sixDOFTransformSelector.currentNode() and self.fiveDOFTransformSelector.currentNode() and self.maskVolumeSelector.currentNode() and self.inputVolumeSelector.currentNode() and self.outputVolumeSelector.currentNode() and self.noseModelSelector.currentNode() and self.jawModelSelector.currentNode()
 
   #-------------------------------------------------------
   def onZeroButtonClicked(self):
     self.logic.zeroJawsCalibration()
+
+  #-------------------------------------------------------
+  def onOffToggleButtonClicked(self):
+    if self.onOffButton.text == "Turn On":
+      self.onOffButton.text = "Turn Off"
+      self.onOffButton.icon = self._loadPixmap( "on" )
+      self.logic.guidanceToggle(True)
+    else:
+      self.onOffButton.text = "Turn On"
+      self.onOffButton.icon = self._loadPixmap( "off" )
+      self.logic.guidanceToggle(False)
 
   #-------------------------------------------------------
   def onMinUIButtonClicked(self):
@@ -304,11 +379,15 @@ class NeoGuidanceLogic(ScriptedLoadableModuleLogic):
 
   #-------------------------------------------------------
   def SetInputVolumeNode(self, inputVolumeNode):
-    if self.inputVolumeNode != inputVolumeNode:
+    if self.inputVolumeNode == inputVolumeNode:
+      return
+
+    if self.inputVolumeNode != None:
       # Clean up observers, switch node
       self.inputVolumeNode.RemoveObserver(self.imageObserverTag)
-      self.inputVolumeNode = inputVolumeNode
-      self.imageObserverTag = self.inputVolumeNode.AddObserver(vtk.vtkCommand.ModifiedEvent, self.onImageModified)
+
+    self.inputVolumeNode = inputVolumeNode
+    self.imageObserverTag = self.inputVolumeNode.AddObserver(vtk.vtkCommand.ModifiedEvent, self.onImageModified)
 
     self.imageStencil.SetInputDataObject(self.inputVolumeNode.GetImageData())
 
@@ -328,7 +407,7 @@ class NeoGuidanceLogic(ScriptedLoadableModuleLogic):
   #-------------------------------------------------------
   def SetMaskVolumeNode(self, maskVolumeNode):
     self.maskVolumeNode = maskVolumeNode
-    self.imageToStencil.SetInputDataObject(self.maskVolumeNode)
+    self.imageToStencil.SetInputDataObject(self.maskVolumeNode.GetImageData())
     self.imageToStencil.Update()
 
   #-------------------------------------------------------
@@ -389,6 +468,10 @@ class NeoGuidanceLogic(ScriptedLoadableModuleLogic):
     sixDOFToReference.MultiplyPoint(originSixDOF, sixDOFOriginInRef)
     referenceToFiveDOF.MultiplyPoint(sixDOFOriginInRef, sixDOFOriginInFiveDOF)
     self.baseSixDOFTo5DOFZOffset = sixDOFOriginInFiveDOF[2]
+
+  #-------------------------------------------------------
+  def guidanceToggle(self, onOff):
+    pass
 
 #-------------------------------------------------------
 #
