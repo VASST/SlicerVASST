@@ -4,10 +4,13 @@ import vtk, qt, ctk, slicer
 from slicer.ScriptedLoadableModule import *
 import logging
 
+#-------------------------------------------------------
 #
 # NeoGuidance
 #
+#-------------------------------------------------------
 class NeoGuidance(ScriptedLoadableModule):
+  #-------------------------------------------------------
   def __init__(self, parent):
     ScriptedLoadableModule.__init__(self, parent)
     self.parent.title = "NeoChord Guidance"
@@ -15,12 +18,15 @@ class NeoGuidance(ScriptedLoadableModule):
     self.parent.dependencies = []
     self.parent.contributors = ["Adam Rankin, Jonathan McLeod (Robarts Research Institute)"]
     self.parent.helpText = """This extensions enables surgical guidance for NeoChord surgical procedures."""
-    self.parent.acknowledgementText = """NSERC, etc..."""
+    self.parent.acknowledgementText = """The authors would like to thank the support of the CIHR, the CFI, and Western University."""
 
+#-------------------------------------------------------
 #
 # NeoGuidanceWidget
 #
+#-------------------------------------------------------
 class NeoGuidanceWidget(ScriptedLoadableModuleWidget):
+  #-------------------------------------------------------
   def setup(self):
     ScriptedLoadableModuleWidget.setup(self)
 
@@ -165,13 +171,26 @@ class NeoGuidanceWidget(ScriptedLoadableModuleWidget):
     layout.addWidget(self.normalUIButton)
     actionsFormLayout.addRow(frame)
 
+    #
+    # On/Off Button
+    #
+
+
+    # TODO FINISH THIS BUTTON/LOGIC
+    self.onOffButton = qt.QPushButton("Turn On")
+    self.zeroButton.toolTip = "Calibrate the jaws to the home position."
+    self.zeroButton.enabled = False
+    actionsFormLayout.addRow("Zero Jaws: ", self.zeroButton)
+
     # connections
     self.zeroButton.connect('clicked(bool)', self.onZeroButtonClicked)
     self.minUIButton.connect('clicked(bool)', self.onMinUIButtonClicked)
     self.normalUIButton.connect('clicked(bool)', self.onNormUIButtonClicked)
-    self.sixDOFTransformSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onSelect)
-    self.sixDOFTransformSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onSelect)
-    self.maskVolumeSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onSelect)
+    self.sixDOFTransformSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onSixDOFSelectorChanged)
+    self.fiveDOFTransformSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onFiveDOFSelectorChanged)
+    self.maskVolumeSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onMaskSelectorChanged)
+    self.inputVolumeSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onInputSelectorChanged)
+    self.outputVolumeSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onOutputSelectorChanged)
 
     # Add vertical spacer
     self.layout.addStretch(1)
@@ -179,15 +198,44 @@ class NeoGuidanceWidget(ScriptedLoadableModuleWidget):
     # Refresh button state
     self.onSelect()
 
+  #-------------------------------------------------------
+  def onSixDOFSelectorChanged(self, newNode):
+    self.logic.SetSixDOFTransformNode(newNode)
+    self.onSelect()
+
+  #-------------------------------------------------------
+  def onFiveDOFSelectorChanged(self, newNode):
+    self.logic.SetFiveDOFTransformNode(newNode)
+    self.onSelect()
+
+  #-------------------------------------------------------
+  def onMaskSelectorChanged(self, newNode):
+    self.logic.SetMaskVolumeNode(newNode)
+    self.onSelect()
+
+  #-------------------------------------------------------
+  def onInputSelectorChanged(self, newNode):
+    self.logic.SetInputVolumeNode(newNode)
+    self.onSelect()
+
+  #-------------------------------------------------------
+  def onOutputSelectorChanged(self, newNode):
+    self.logic.SetOutputVolumeNode(newNode)
+    self.onSelect()
+
+  #-------------------------------------------------------
   def cleanup(self):
     pass
 
+  #-------------------------------------------------------
   def onSelect(self):
-    self.zeroButton.enabled = self.sixDOFTransformSelector.currentNode() and self.fiveDOFTransformSelector.currentNode() and self.maskVolumeSelector.currentNode()
+    self.zeroButton.enabled = self.sixDOFTransformSelector.currentNode() and self.fiveDOFTransformSelector.currentNode() and self.maskVolumeSelector.currentNode() and self.inputVolumeSelector.currentNode() and self.outputVolumeSelector.currentNode()
 
+  #-------------------------------------------------------
   def onZeroButtonClicked(self):
-    pass
+    self.logic.zeroJawsCalibration()
 
+  #-------------------------------------------------------
   def onMinUIButtonClicked(self):
     slicer.util.mainWindow().PanelDockWidget.dockWidgetContents.DataProbeCollapsibleWidget.hide()
     slicer.util.mainWindow().DialogToolBar.hide()
@@ -203,6 +251,7 @@ class NeoGuidanceWidget(ScriptedLoadableModuleWidget):
     slicer.util.mainWindow().PanelDockWidget.dockWidgetContents.ModulePanel.ScrollArea.qt_scrollarea_viewport.scrollAreaWidgetContents.HelpCollapsibleButton.hide()
     slicer.util.mainWindow().PanelDockWidget.dockWidgetContents.LogoLabel.hide()
 
+  #-------------------------------------------------------
   def onNormUIButtonClicked(self):
     slicer.util.mainWindow().PanelDockWidget.dockWidgetContents.DataProbeCollapsibleWidget.show()
     slicer.util.mainWindow().DialogToolBar.show()
@@ -218,10 +267,13 @@ class NeoGuidanceWidget(ScriptedLoadableModuleWidget):
     slicer.util.mainWindow().PanelDockWidget.dockWidgetContents.ModulePanel.ScrollArea.qt_scrollarea_viewport.scrollAreaWidgetContents.HelpCollapsibleButton.show()
     slicer.util.mainWindow().PanelDockWidget.dockWidgetContents.LogoLabel.show()
 
+#-------------------------------------------------------
 #
 # NeoGuidanceLogic
 #
+#-------------------------------------------------------
 class NeoGuidanceLogic(ScriptedLoadableModuleLogic):
+  #-------------------------------------------------------
   def __init__(self):
     # TODO : trasnform hierarchy needs to be managed when nodes are selected/deselected
 
@@ -237,6 +289,12 @@ class NeoGuidanceLogic(ScriptedLoadableModuleLogic):
     self.imageObserverTag = None
     self.fiveDOFObserverTag = None
 
+    self.inputVolumeNode = None
+    self.outputVolumeNode = None
+    self.maskVolumeNode = None
+    self.sixDOFTransformNode = None
+    self.fiveDOFTransformNode = None
+
     self.imageToStencil = vtk.vtkImageToImageStencil()
     self.imageToStencil.ThresholdByUpper(254)
 
@@ -244,49 +302,61 @@ class NeoGuidanceLogic(ScriptedLoadableModuleLogic):
     self.imageStencil.SetStencilConnection(self.imageToStencil.GetOutputPort())
     self.imageStencil.SetBackgroundValue(0)
 
+  #-------------------------------------------------------
   def SetInputVolumeNode(self, inputVolumeNode):
     if self.inputVolumeNode != inputVolumeNode:
       # Clean up observers, switch node
       self.inputVolumeNode.RemoveObserver(self.imageObserverTag)
-      self.inputVolumeNode = outputVolumeNode
+      self.inputVolumeNode = inputVolumeNode
       self.imageObserverTag = self.inputVolumeNode.AddObserver(vtk.vtkCommand.ModifiedEvent, self.onImageModified)
 
     self.imageStencil.SetInputDataObject(self.inputVolumeNode.GetImageData())
 
-  def onImageModified(imageNode, event):
+  #-------------------------------------------------------
+  def onImageModified(self, imageNode, event):
     if self.outputVolumeNode == None or self.maskVolumeNode == None:
       return
 
     self.outputVolumeNode.CopyOrientation(self.inputVolumeNode)
     self.imageStencil.SetInputDataObject(self.inputVolumeNode.GetImageData())
     self.imageStencil.Update()
-      
+
+  #-------------------------------------------------------
   def SetOutputVolumeNode(self, outputVolumeNode):
     pass
 
+  #-------------------------------------------------------
   def SetMaskVolumeNode(self, maskVolumeNode):
     self.maskVolumeNode = maskVolumeNode
     self.imageToStencil.SetInputDataObject(self.maskVolumeNode)
     self.imageToStencil.Update()
 
+  #-------------------------------------------------------
   def SetSixDOFTransformNode(self, sixDOFNode):
     self.sixDOFTransformNode = sixDOFNode
 
+  #-------------------------------------------------------
   def SetFiveDOFTransformNode(self, fiveDOFNode):
-    if self.fiveDOFTransformNode != fiveDOFNode:
-      # Clean up observers, switch node
-      self.fiveDOFTransformNode.RemoveObserver(self.fiveDOFObserverTag)
-      self.fiveDOFTransformNode = fiveDOFNode
-      self.fiveDOFObserverTag = self.fiveDOFTransformNode.AddObserver(vtk.vtkCommand.ModifiedEvent, self.onFiveDOFModified)
+    if self.fiveDOFTransformNode == fiveDOFNode:
+      return
 
-  def onFiveDOFModified(transformNode, event):
+    if self.fiveDOFTransformNode != None:
+      # Clean up observers
+      self.fiveDOFTransformNode.RemoveObserver(self.fiveDOFObserverTag)
+
+    # Switch node
+    self.fiveDOFTransformNode = fiveDOFNode
+    self.fiveDOFObserverTag = self.fiveDOFTransformNode.AddObserver(vtk.vtkCommand.ModifiedEvent, self.onFiveDOFModified)
+
+  #-------------------------------------------------------
+  def onFiveDOFModified(self, transformNode, event):
     if self.sixDOFTransformNode == None or self.fiveDOFTransformNode == None:
       return
 
     fiveDOFToReference = vtk.vtkMatrix4x4()
-    fiveDOFTransformNode.GetMatrixTransformToParent(fiveDOFToReference)
+    self.fiveDOFTransformNode.GetMatrixTransformToParent(fiveDOFToReference)
     sixDOFToReference = vtk.vtkMatrix4x4()
-    sixDOFTransformNode.GetMatrixTransformToParent(sixDOFToReference)
+    self.sixDOFTransformNode.GetMatrixTransformToParent(sixDOFToReference)
     referenceToFiveDOF = vtk.vtkMatrix4x4()
     referenceToFiveDOF.DeepCopy(fiveDOFToReference)
     referenceToFiveDOF.Invert();
@@ -297,17 +367,18 @@ class NeoGuidanceLogic(ScriptedLoadableModuleLogic):
     sixDOFToReference.MultiplyPoint(originSixDOF, sixDOFOriginInRef)
     referenceToFiveDOF.MultiplyPoint(sixDOFOriginInRef, sixDOFOriginInFiveDOF)
     sixDOFCalculatedToFiveDOF = vtk.vtkMatrix4x4()
-    sixDOFCalculatedToFiveDOF.SetElement(2,3, sixDOFOriginInFiveDOF[2] - baseSixDOFTo5DOFZOffset)
+    sixDOFCalculatedToFiveDOF.SetElement(2,3, sixDOFOriginInFiveDOF[2] - self.baseSixDOFTo5DOFZOffset)
     self.SixCalculatedToFiveTransform.SetMatrixTransformToParent(sixDOFCalculatedToFiveDOF)
 
-  def zeroJawsCalibration():
+  #-------------------------------------------------------
+  def zeroJawsCalibration(self):
     if self.sixDOFTransformNode == None or self.fiveDOFTransformNode == None:
       return
 
     fiveDOFToReference = vtk.vtkMatrix4x4()
-    fiveDOFTransformNode.GetMatrixTransformToParent(fiveDOFToReference)
+    self.fiveDOFTransformNode.GetMatrixTransformToParent(fiveDOFToReference)
     sixDOFToReference = vtk.vtkMatrix4x4()
-    sixDOFTransformNode.GetMatrixTransformToParent(sixDOFToReference)
+    self.sixDOFTransformNode.GetMatrixTransformToParent(sixDOFToReference)
     referenceToFiveDOF = vtk.vtkMatrix4x4()
     referenceToFiveDOF.DeepCopy(fiveDOFToReference)
     referenceToFiveDOF.Invert();
@@ -319,19 +390,24 @@ class NeoGuidanceLogic(ScriptedLoadableModuleLogic):
     referenceToFiveDOF.MultiplyPoint(sixDOFOriginInRef, sixDOFOriginInFiveDOF)
     self.baseSixDOFTo5DOFZOffset = sixDOFOriginInFiveDOF[2]
 
+#-------------------------------------------------------
 #
 # NeoGuidanceTest
 #
+#-------------------------------------------------------
 class NeoGuidanceTest(ScriptedLoadableModuleTest):
+  #-------------------------------------------------------
   def setUp(self):
     """ Do whatever is needed to reset the state - typically a scene clear will be enough."""
     slicer.mrmlScene.Clear(0)
 
+  #-------------------------------------------------------
   def runTest(self):
     """Run as few or as many tests as needed here."""
     self.setUp()
     self.test_NeoGuidance1()
 
+  #-------------------------------------------------------
   def test_NeoGuidance1(self):
     self.delayDisplay("Starting the test")
 
