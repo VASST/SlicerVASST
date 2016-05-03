@@ -73,6 +73,21 @@ class NeoGuidanceWidget(ScriptedLoadableModuleWidget):
     parametersFormLayout.addRow("6DOF Transform: ", self.sixDOFTransformSelector)
 
     #
+    # 6DOFModel to 6DOF transform selector
+    #
+    self.sixDOFModelTo6DOFTransformSelector = slicer.qMRMLNodeComboBox()
+    self.sixDOFModelTo6DOFTransformSelector.nodeTypes = ["vtkMRMLLinearTransformNode"]
+    self.sixDOFModelTo6DOFTransformSelector.selectNodeUponCreation = True
+    self.sixDOFModelTo6DOFTransformSelector.addEnabled = False
+    self.sixDOFModelTo6DOFTransformSelector.removeEnabled = False
+    self.sixDOFModelTo6DOFTransformSelector.noneEnabled = True
+    self.sixDOFModelTo6DOFTransformSelector.showHidden = False
+    self.sixDOFModelTo6DOFTransformSelector.showChildNodeTypes = False
+    self.sixDOFModelTo6DOFTransformSelector.setMRMLScene( slicer.mrmlScene )
+    self.sixDOFModelTo6DOFTransformSelector.setToolTip( "Pick the transform describing the 6DOF model offset." )
+    parametersFormLayout.addRow("6DOF Model Transform: ", self.sixDOFModelTo6DOFTransformSelector)
+
+    #
     # 5DOF transform selector
     #
     self.fiveDOFTransformSelector = slicer.qMRMLNodeComboBox()
@@ -83,10 +98,26 @@ class NeoGuidanceWidget(ScriptedLoadableModuleWidget):
     self.fiveDOFTransformSelector.noneEnabled = True
     self.fiveDOFTransformSelector.showHidden = False
     self.fiveDOFTransformSelector.showChildNodeTypes = False
-    self.fiveDOFTransformSelector.setMRMLScene( slicer.mrmlScene )
-    self.fiveDOFTransformSelector.setToolTip( "Pick the transform describing the 5DOF sensor." )
+    self.fiveDOFTransformSelector.setMRMLScene(slicer.mrmlScene)
+    self.fiveDOFTransformSelector.setToolTip("Pick the transform describing the 5DOF sensor.")
     parametersFormLayout.addRow("5DOF Transform: ", self.fiveDOFTransformSelector)
 
+    #
+    # 5DOFModel to 5DOFCalculated transform selector
+    #
+    self.fiveDOFModelTo5DOFCalculatedTransformSelector = slicer.qMRMLNodeComboBox()
+    self.fiveDOFModelTo5DOFCalculatedTransformSelector.nodeTypes = ["vtkMRMLLinearTransformNode"]
+    self.fiveDOFModelTo5DOFCalculatedTransformSelector.selectNodeUponCreation = True
+    self.fiveDOFModelTo5DOFCalculatedTransformSelector.addEnabled = False
+    self.fiveDOFModelTo5DOFCalculatedTransformSelector.removeEnabled = False
+    self.fiveDOFModelTo5DOFCalculatedTransformSelector.noneEnabled = True
+    self.fiveDOFModelTo5DOFCalculatedTransformSelector.showHidden = False
+    self.fiveDOFModelTo5DOFCalculatedTransformSelector.showChildNodeTypes = False
+    self.fiveDOFModelTo5DOFCalculatedTransformSelector.setMRMLScene(slicer.mrmlScene)
+    self.fiveDOFModelTo5DOFCalculatedTransformSelector.setToolTip("Pick the transform describing the 5DOF model offset.")
+    parametersFormLayout.addRow("5DOF Model Transform: ", self.fiveDOFModelTo5DOFCalculatedTransformSelector)
+
+    # Separator
     frame = qt.QWidget()
     layout = qt.QHBoxLayout(frame)
     layout.setContentsMargins(0,0,0,0)
@@ -96,19 +127,19 @@ class NeoGuidanceWidget(ScriptedLoadableModuleWidget):
     parametersFormLayout.addRow(frame)
 
     #
-    # input volume selector
+    # ICE volume selector
     #
-    self.inputVolumeSelector = slicer.qMRMLNodeComboBox()
-    self.inputVolumeSelector.nodeTypes = ["vtkMRMLScalarVolumeNode"]
-    self.inputVolumeSelector.selectNodeUponCreation = True
-    self.inputVolumeSelector.addEnabled = False
-    self.inputVolumeSelector.removeEnabled = False
-    self.inputVolumeSelector.noneEnabled = True
-    self.inputVolumeSelector.showHidden = False
-    self.inputVolumeSelector.showChildNodeTypes = False
-    self.inputVolumeSelector.setMRMLScene( slicer.mrmlScene )
-    self.inputVolumeSelector.setToolTip( "Pick the volume from the ICE transducer." )
-    parametersFormLayout.addRow("ICE Image: ", self.inputVolumeSelector)
+    self.iceVolumeSelector = slicer.qMRMLNodeComboBox()
+    self.iceVolumeSelector.nodeTypes = ["vtkMRMLScalarVolumeNode"]
+    self.iceVolumeSelector.selectNodeUponCreation = True
+    self.iceVolumeSelector.addEnabled = False
+    self.iceVolumeSelector.removeEnabled = False
+    self.iceVolumeSelector.noneEnabled = True
+    self.iceVolumeSelector.showHidden = False
+    self.iceVolumeSelector.showChildNodeTypes = False
+    self.iceVolumeSelector.setMRMLScene(slicer.mrmlScene)
+    self.iceVolumeSelector.setToolTip("Pick the volume from the ICE transducer.")
+    parametersFormLayout.addRow("ICE Image: ", self.iceVolumeSelector)
 
     #
     # mask volume selector
@@ -126,20 +157,44 @@ class NeoGuidanceWidget(ScriptedLoadableModuleWidget):
     parametersFormLayout.addRow("ICE Mask: ", self.maskVolumeSelector)
 
     #
+    # TEE volume selector
+    #
+    self.teeVolumeSelector = slicer.qMRMLNodeComboBox()
+    self.teeVolumeSelector.nodeTypes = ["vtkMRMLScalarVolumeNode"]
+    self.teeVolumeSelector.selectNodeUponCreation = True
+    self.teeVolumeSelector.addEnabled = False
+    self.teeVolumeSelector.removeEnabled = False
+    self.teeVolumeSelector.noneEnabled = True
+    self.teeVolumeSelector.showHidden = False
+    self.teeVolumeSelector.showChildNodeTypes = False
+    self.teeVolumeSelector.setMRMLScene(slicer.mrmlScene)
+    self.teeVolumeSelector.setToolTip("Pick the volume from the TEE transducer.")
+    parametersFormLayout.addRow("TEE Image: ", self.teeVolumeSelector)
+
+    #
     # output volume selector
     #
-    self.outputVolumeSelector = slicer.qMRMLNodeComboBox()
-    self.outputVolumeSelector.nodeTypes = ["vtkMRMLScalarVolumeNode"]
-    self.outputVolumeSelector.selectNodeUponCreation = True
-    self.outputVolumeSelector.addEnabled = True
-    self.outputVolumeSelector.renameEnabled = True
-    self.outputVolumeSelector.removeEnabled = False
-    self.outputVolumeSelector.noneEnabled = True
-    self.outputVolumeSelector.showHidden = False
-    self.outputVolumeSelector.showChildNodeTypes = False
-    self.outputVolumeSelector.setMRMLScene( slicer.mrmlScene )
-    self.outputVolumeSelector.setToolTip( "Pick the volume for the masked output. Will be transformed." )
-    parametersFormLayout.addRow("Masked Output: ", self.outputVolumeSelector)
+    self.maskedICEVolumeSelector = slicer.qMRMLNodeComboBox()
+    self.maskedICEVolumeSelector.nodeTypes = ["vtkMRMLScalarVolumeNode"]
+    self.maskedICEVolumeSelector.selectNodeUponCreation = True
+    self.maskedICEVolumeSelector.addEnabled = True
+    self.maskedICEVolumeSelector.renameEnabled = True
+    self.maskedICEVolumeSelector.removeEnabled = False
+    self.maskedICEVolumeSelector.noneEnabled = True
+    self.maskedICEVolumeSelector.showHidden = False
+    self.maskedICEVolumeSelector.showChildNodeTypes = False
+    self.maskedICEVolumeSelector.setMRMLScene(slicer.mrmlScene)
+    self.maskedICEVolumeSelector.setToolTip("Pick the volume for the masked output.")
+    parametersFormLayout.addRow("Masked Output: ", self.maskedICEVolumeSelector)
+
+    # Separator
+    frame = qt.QWidget()
+    layout = qt.QHBoxLayout(frame)
+    layout.setContentsMargins(0, 0, 0, 0)
+    layout.addStretch()
+    layout.addWidget(qt.QLabel("Models"))
+    layout.addStretch()
+    parametersFormLayout.addRow(frame)
 
     #
     # nose model selector
@@ -240,10 +295,13 @@ class NeoGuidanceWidget(ScriptedLoadableModuleWidget):
     self.sixDOFTransformSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onSixDOFSelectorChanged)
     self.fiveDOFTransformSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onFiveDOFSelectorChanged)
     self.maskVolumeSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onMaskSelectorChanged)
-    self.inputVolumeSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onInputSelectorChanged)
-    self.outputVolumeSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onOutputSelectorChanged)
+    self.teeVolumeSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onTEEVolumeSelectorChanged)
+    self.iceVolumeSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onICESelectorChanged)
+    self.maskedICEVolumeSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onMaskedICEVolumeSelectorChanged)
     self.jawModelSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onJawModelSelectorChanged)
     self.noseModelSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onNoseModelSelectorChanged)
+    self.sixDOFModelTo6DOFTransformSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.on6DOFModelTo6DOFSelectorChanged)
+    self.fiveDOFModelTo5DOFCalculatedTransformSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.on5DOFModelTo5DOFCalculatedSelectorChanged)
 
     # Add vertical spacer
     self.layout.addStretch(1)
@@ -262,28 +320,43 @@ class NeoGuidanceWidget(ScriptedLoadableModuleWidget):
     self.onSelect()
 
   #-------------------------------------------------------
+  def on6DOFModelTo6DOFSelectorChanged(self, newNode):
+    self.logic.Set6DOFModelTo6DOFTransformNode(newNode)
+    self.onSelect()
+
+  #-------------------------------------------------------
+  def on5DOFModelTo5DOFCalculatedSelectorChanged(self, newNode):
+    self.logic.Set5DOFModelTo5DOFCalculatedTransformNode(newNode)
+    self.onSelect()
+
+  #-------------------------------------------------------
+  def onTEEVolumeSelectorChanged(self, newNode):
+    self.logic.SetTEEVolumeNode(newNode)
+    self.onSelect()
+
+  #-------------------------------------------------------
   def onMaskSelectorChanged(self, newNode):
     self.logic.SetMaskVolumeNode(newNode)
     self.onSelect()
 
   #-------------------------------------------------------
-  def onInputSelectorChanged(self, newNode):
-    self.logic.SetInputVolumeNode(newNode)
+  def onICESelectorChanged(self, newNode):
+    self.logic.SetICEVolumeNode(newNode)
     self.onSelect()
 
   #-------------------------------------------------------
-  def onOutputSelectorChanged(self, newNode):
-    self.logic.SetOutputVolumeNode(newNode)
+  def onMaskedICEVolumeSelectorChanged(self, newNode):
+    self.logic.SetMaskedICEVolumeNode(newNode)
     self.onSelect()
 
   #-------------------------------------------------------
   def onJawModelSelectorChanged(self, newNode):
-    #TODO link transform hierarchy to new nose model
+    self.logic.SetJawModel(newNode)
     self.onSelect()
 
   #-------------------------------------------------------
   def onNoseModelSelectorChanged(self, newNode):
-    #TODO link transform hierarchy to new nose model
+    self.logic.SetNoseModel(newNode)
     self.onSelect()
 
   #-------------------------------------------------------
@@ -292,23 +365,23 @@ class NeoGuidanceWidget(ScriptedLoadableModuleWidget):
 
   #-------------------------------------------------------
   def onSelect(self):
-    self.zeroButton.enabled = self.sixDOFTransformSelector.currentNode() and self.fiveDOFTransformSelector.currentNode() and self.maskVolumeSelector.currentNode() and self.inputVolumeSelector.currentNode() and self.outputVolumeSelector.currentNode() and self.noseModelSelector.currentNode() and self.jawModelSelector.currentNode()
-    self.onOffButton.enabled = self.sixDOFTransformSelector.currentNode() and self.fiveDOFTransformSelector.currentNode() and self.maskVolumeSelector.currentNode() and self.inputVolumeSelector.currentNode() and self.outputVolumeSelector.currentNode() and self.noseModelSelector.currentNode() and self.jawModelSelector.currentNode()
+    self.zeroButton.enabled = self.sixDOFTransformSelector.currentNode() and self.fiveDOFTransformSelector.currentNode() and self.maskVolumeSelector.currentNode() and self.iceVolumeSelector.currentNode() and self.maskedICEVolumeSelector.currentNode() and self.noseModelSelector.currentNode() and self.jawModelSelector.currentNode() and self.sixDOFModelTo6DOFTransformSelector.currentNode()
+    self.onOffButton.enabled = self.sixDOFTransformSelector.currentNode() and self.fiveDOFTransformSelector.currentNode() and self.maskVolumeSelector.currentNode() and self.iceVolumeSelector.currentNode() and self.maskedICEVolumeSelector.currentNode() and self.noseModelSelector.currentNode() and self.jawModelSelector.currentNode() and self.sixDOFModelTo6DOFTransformSelector.currentNode()
 
   #-------------------------------------------------------
   def onZeroButtonClicked(self):
-    self.logic.zeroJawsCalibration()
+    self.logic.ZeroJawsCalibration()
 
   #-------------------------------------------------------
   def onOffToggleButtonClicked(self):
     if self.onOffButton.text == "Turn On":
       self.onOffButton.text = "Turn Off"
       self.onOffButton.icon = self._loadPixmap( "on" )
-      self.logic.guidanceToggle(True)
+      self.logic.GuidanceToggle(True)
     else:
       self.onOffButton.text = "Turn On"
       self.onOffButton.icon = self._loadPixmap( "off" )
-      self.logic.guidanceToggle(False)
+      self.logic.GuidanceToggle(False)
 
   #-------------------------------------------------------
   def onMinUIButtonClicked(self):
@@ -349,26 +422,35 @@ class NeoGuidanceWidget(ScriptedLoadableModuleWidget):
 #-------------------------------------------------------
 class NeoGuidanceLogic(ScriptedLoadableModuleLogic):
   #-------------------------------------------------------
-  def __init__(self):
-    # TODO : trasnform hierarchy needs to be managed when nodes are selected/deselected
+  def __init__(self, parent=None):
+    ScriptedLoadableModuleLogic.__init__(self, parent)
 
-    # Find or create the 6DOFCalculatedTo5DOF transform
-    self.SixCalculatedToFiveTransform = slicer.util.getNode("sixCalculatedToFiveTransform")
-    if self.SixCalculatedToFiveTransform == None:
+    self.resliceLogic = slicer.modulelogic.vtkSlicerVolumeResliceDriverLogic()
+
+    # Find or create the 5DOFCalculatedTo6DOF transform
+    self.FiveCalculatedToSixTransform = slicer.util.getNode("FiveCalculatedToSixTransform")
+    if self.FiveCalculatedToSixTransform == None:
       # Create the node
-      self.SixCalculatedToFiveTransform = slicer.vtkMRMLLinearTransformNode()
-      self.SixCalculatedToFiveTransform.SetName("sixCalculatedToFiveTransform")
-      slicer.mrmlScene.AddNode(self.SixCalculatedToFiveTransform)
+      self.FiveCalculatedToSixTransform = slicer.vtkMRMLLinearTransformNode()
+      self.FiveCalculatedToSixTransform.SetName("FiveCalculatedToSixTransform")
+      self.FiveCalculatedToSixTransform.SetHideFromEditors(True)
+      slicer.mrmlScene.AddNode(self.FiveCalculatedToSixTransform)
 
-    self.baseSixDOFTo5DOFZOffset = 0.0
+    self.base5DOFTo6DOFZOffset = 0.0
     self.imageObserverTag = None
-    self.fiveDOFObserverTag = None
+    self.sixDOFObserverTag = None
 
-    self.inputVolumeNode = None
-    self.outputVolumeNode = None
+    self.iceVolumeNode = None
+    self.maskedICEVolumeNode = None
     self.maskVolumeNode = None
     self.sixDOFTransformNode = None
     self.fiveDOFTransformNode = None
+    self.sixDOFModelTo6DOFTransformNode = None
+    self.fiveDOFModelTo5DOFCalculatedTransformNode = None
+    self.jawModelNode = None
+    self.noseModelNode = None
+
+    self.guidanceOn = False
 
     self.imageToStencil = vtk.vtkImageToImageStencil()
     self.imageToStencil.ThresholdByUpper(254)
@@ -377,58 +459,186 @@ class NeoGuidanceLogic(ScriptedLoadableModuleLogic):
     self.imageStencil.SetStencilConnection(self.imageToStencil.GetOutputPort())
     self.imageStencil.SetBackgroundValue(0)
 
+    self.teeConnectorNode = slicer.util.getNode(self.moduleName + 'TEEServerConnector')
+    if self.teeConnectorNode == None:
+      self.teeConnectorNode = slicer.vtkMRMLIGTLConnectorNode()
+      slicer.mrmlScene.AddNode(self.teeConnectorNode)
+      self.teeConnectorNode.SetName(self.moduleName + 'TEEServerConnector')
+
+    self.teeConnectorNode.SetTypeClient("localhost", 18945)
+    self.teeConnectorNode.Start()
+
+    self.iceConnectorNode = slicer.util.getNode(self.moduleName + 'ICEServerConnector')
+    if self.iceConnectorNode == None:
+      self.iceConnectorNode = slicer.vtkMRMLIGTLConnectorNode()
+      slicer.mrmlScene.AddNode(self.iceConnectorNode)
+      self.iceConnectorNode.SetName(self.moduleName + 'ICEServerConnector')
+
+    self.iceConnectorNode.SetTypeClient("localhost", 18944)
+    self.iceConnectorNode.Start()
+
   #-------------------------------------------------------
-  def SetInputVolumeNode(self, inputVolumeNode):
-    if self.inputVolumeNode == inputVolumeNode:
+  def SetICEVolumeNode(self, iceVolumeNode):
+    if self.iceVolumeNode == iceVolumeNode:
       return
 
-    if self.inputVolumeNode != None:
+    if self.iceVolumeNode != None:
       # Clean up observers, switch node
-      self.inputVolumeNode.RemoveObserver(self.imageObserverTag)
+      self.iceVolumeNode.RemoveObserver(self.imageObserverTag)
+      self.iceVolumeNode.SetAndObserveTransformNodeID(None)
 
-    self.inputVolumeNode = inputVolumeNode
-    self.imageObserverTag = self.inputVolumeNode.AddObserver(vtk.vtkCommand.ModifiedEvent, self.onImageModified)
+    self.iceVolumeNode = iceVolumeNode
 
-    self.imageStencil.SetInputDataObject(self.inputVolumeNode.GetImageData())
+    if self.iceVolumeNode != None:
+      self.imageObserverTag = self.iceVolumeNode.AddObserver(vtk.vtkCommand.ModifiedEvent, self.onICEImageModified)
+      self.iceVolumeNode.SetAndObserveTransformNodeID(self.FiveCalculatedToSixTransform.GetID())
+      self.imageStencil.SetInputDataObject(self.iceVolumeNode.GetImageData())
 
   #-------------------------------------------------------
-  def onImageModified(self, imageNode, event):
-    if self.outputVolumeNode == None or self.maskVolumeNode == None:
+  def onICEImageModified(self, imageNode, event):
+    if not self.guidanceOn:
       return
 
-    self.outputVolumeNode.CopyOrientation(self.inputVolumeNode)
-    self.imageStencil.SetInputDataObject(self.inputVolumeNode.GetImageData())
+    if self.maskedICEVolumeNode == None or self.maskVolumeNode == None:
+      return
+
+    self.maskedICEVolumeNode.CopyOrientation(self.iceVolumeNode)
+    self.imageStencil.SetInputDataObject(self.iceVolumeNode.GetImageData())
     self.imageStencil.Update()
 
   #-------------------------------------------------------
-  def SetOutputVolumeNode(self, outputVolumeNode):
-    pass
+  def SetMaskedICEVolumeNode(self, maskedICEVolumeNode):
+    if self.maskedICEVolumeNode == maskedICEVolumeNode:
+      return
+
+    if self.maskedICEVolumeNode != None:
+      self.maskedICEVolumeNode.SetAndObserveTransformNodeID(None)
+      self.maskedICEVolumeNode.SetImageDataConnection(None)
+
+    self.maskedICEVolumeNode = maskedICEVolumeNode
+
+    if self.maskedICEVolumeNode != None:
+      self.maskedICEVolumeNode.SetAndObserveTransformNodeID(self.FiveCalculatedToSixTransform.GetID())
+      self.maskedICEVolumeNode.SetImageDataConnection(self.imageStencil.GetOutputPort())
+
+      # Configure volume reslice driver, transverse
+      self.resliceLogic.SetDriverForSlice(maskedICEVolumeNode.GetID(), slicer.mrmlScene.GetNodeByID('vtkMRMLSliceNodeRed'))
+      self.resliceLogic.SetModeForSlice(slicer.modulelogic.vtkSlicerVolumeResliceDriverLogic.MODE_TRANSVERSE, slicer.mrmlScene.GetNodeByID('vtkMRMLSliceNodeRed'))
+
+      # Set red display to this volume, reformat, and visible on
+      slicer.mrmlScene.GetNodeByID('vtkMRMLSliceCompositeNodeRed').SetBackgroundVolumeID(self.maskedICEVolumeNode.GetID())
+      slicer.mrmlScene.GetNodeByID('vtkMRMLSliceNodeRed').SetSliceVisible(True)
+      slicer.mrmlScene.GetNodeByID('vtkMRMLSliceNodeRed').SetOrientationToReformat()
+      slicer.app.layoutManager().sliceWidget('Red').sliceConroller().fitSliceToBackground()
+
+      # Set threshold to manual, minimum 1, maximum 255
+      dispNode = self.maskedICEVolumeNode.GetDisplayNode()
+      dispNode.ApplyThresholdOn()
+      dispNode.SetThreshold(1,255)
+
+  # -------------------------------------------------------
+  def SetJawModel(self, jawModelNode):
+    if self.jawModelNode == jawModelNode:
+      return
+
+    if self.jawModelNode != None:
+      # remove parenting
+      self.jawModelNode.SetAndObserveTransformNodeID(None)
+
+    self.jawModelNode = jawModelNode
+
+    if self.jawModelNode != None and self.sixDOFTransformNode != None and self.sixDOFModelTo6DOFTransformNode != None:
+      self.ParentJawModel()
+
+  # -------------------------------------------------------
+  def SetNoseModel(self, noseModelNode):
+    if self.noseModelNode == noseModelNode:
+      return
+
+    if self.noseModelNode != None:
+      # remove parenting
+      self.noseModelNode.SetAndObserveTransformNodeID(None)
+
+    self.noseModelNode = noseModelNode
+
+    if self.noseModelNode != None and self.fiveDOFTransformNode != None and self.sixDOFTransformNode != None and self.fiveDOFModelTo5DOFCalculatedTransformNode != None:
+      self.ParentNoseModel()
 
   #-------------------------------------------------------
   def SetMaskVolumeNode(self, maskVolumeNode):
     self.maskVolumeNode = maskVolumeNode
-    self.imageToStencil.SetInputDataObject(self.maskVolumeNode.GetImageData())
-    self.imageToStencil.Update()
+
+    if self.maskVolumeNode != None:
+      self.imageToStencil.SetInputDataObject(self.maskVolumeNode.GetImageData())
+      self.imageToStencil.Update()
 
   #-------------------------------------------------------
-  def SetSixDOFTransformNode(self, sixDOFNode):
-    self.sixDOFTransformNode = sixDOFNode
+  def SetTEEVolumeNode(self, teeVolumeNode):
+    self.teeVolumeNode = teeVolumeNode
 
   #-------------------------------------------------------
   def SetFiveDOFTransformNode(self, fiveDOFNode):
-    if self.fiveDOFTransformNode == fiveDOFNode:
-      return
-
-    if self.fiveDOFTransformNode != None:
-      # Clean up observers
-      self.fiveDOFTransformNode.RemoveObserver(self.fiveDOFObserverTag)
-
-    # Switch node
     self.fiveDOFTransformNode = fiveDOFNode
-    self.fiveDOFObserverTag = self.fiveDOFTransformNode.AddObserver(vtk.vtkCommand.ModifiedEvent, self.onFiveDOFModified)
+
+    if self.noseModelNode != None and self.fiveDOFTransformNode != None and self.sixDOFTransformNode != None and self.fiveDOFModelTo5DOFCalculatedTransformNode != None:
+      self.ParentNoseModel()
 
   #-------------------------------------------------------
-  def onFiveDOFModified(self, transformNode, event):
+  def SetSixDOFTransformNode(self, sixDOFNode):
+    if self.sixDOFTransformNode == sixDOFNode:
+      return
+
+    if self.sixDOFTransformNode != None:
+      # Clean up observers
+      self.sixDOFTransformNode.RemoveObserver(self.sixDOFObserverTag)
+      self.FiveCalculatedToSixTransform.SetAndObserveTransformNodeID(None)
+
+    # Observe node
+    self.sixDOFTransformNode = sixDOFNode
+
+    if self.sixDOFTransformNode != None:
+      self.sixDOFObserverTag = self.sixDOFTransformNode.AddObserver(vtk.vtkCommand.ModifiedEvent, self.onSixDOFModified)
+      self.FiveCalculatedToSixTransform.SetAndObserveTransformNodeID(self.sixDOFTransformNode.GetID())
+
+      if self.jawModelNode != None and self.sixDOFModelTo6DOFTransformNode != None:
+        self.ParentJawModel()
+
+      if self.noseModelNode != None and self.fiveDOFTransformNode != None and self.fiveDOFModelTo5DOFCalculatedTransformNode != None:
+        self.ParentNoseModel()
+
+  #-------------------------------------------------------
+  def Set6DOFModelTo6DOFTransformNode(self, transformNode):
+    if self.sixDOFModelTo6DOFTransformNode == transformNode:
+      return
+
+    if self.jawModelNode != None:
+      # remove parenting
+      self.jawModelNode.SetAndObserveTransformNodeID(None)
+
+    self.sixDOFModelTo6DOFTransformNode = transformNode
+
+    if self.sixDOFModelTo6DOFTransformNode != None and self.jawModelNode != None and self.sixDOFTransformNode != None:
+      self.ParentJawModel()
+
+  #-------------------------------------------------------
+  def Set5DOFModelTo5DOFCalculatedTransformNode(self, transformNode):
+    if self.fiveDOFModelTo5DOFCalculatedTransformNode == transformNode:
+      return
+
+    if self.noseModelNode != None:
+      # remove parenting
+      self.noseModelNode.SetAndObserveTransformNodeID(None)
+
+    self.fiveDOFModelTo5DOFCalculatedTransformNode = transformNode
+
+    if self.fiveDOFModelTo5DOFCalculatedTransformNode != None and self.noseModelNode != None and self.fiveDOFTransformNode != None and self.sixDOFTransformNode != None:
+      self.ParentNoseModel()
+
+  #-------------------------------------------------------
+  def onSixDOFModified(self, transformNode, event):
+    if not self.guidanceOn:
+      return
+
     if self.sixDOFTransformNode == None or self.fiveDOFTransformNode == None:
       return
 
@@ -436,21 +646,21 @@ class NeoGuidanceLogic(ScriptedLoadableModuleLogic):
     self.fiveDOFTransformNode.GetMatrixTransformToParent(fiveDOFToReference)
     sixDOFToReference = vtk.vtkMatrix4x4()
     self.sixDOFTransformNode.GetMatrixTransformToParent(sixDOFToReference)
-    referenceToFiveDOF = vtk.vtkMatrix4x4()
-    referenceToFiveDOF.DeepCopy(fiveDOFToReference)
-    referenceToFiveDOF.Invert();
+    referenceToSixDOF = vtk.vtkMatrix4x4()
+    referenceToSixDOF.DeepCopy(sixDOFToReference)
+    referenceToSixDOF.Invert()
 
-    originSixDOF = [0.0, 0.0, 0.0, 1.0]
-    sixDOFOriginInRef = [0.0,0.0,0.0,1.0]
-    sixDOFOriginInFiveDOF = [0.0, 0.0, 0.0, 1.0]
-    sixDOFToReference.MultiplyPoint(originSixDOF, sixDOFOriginInRef)
-    referenceToFiveDOF.MultiplyPoint(sixDOFOriginInRef, sixDOFOriginInFiveDOF)
-    sixDOFCalculatedToFiveDOF = vtk.vtkMatrix4x4()
-    sixDOFCalculatedToFiveDOF.SetElement(2,3, sixDOFOriginInFiveDOF[2] - self.baseSixDOFTo5DOFZOffset)
-    self.SixCalculatedToFiveTransform.SetMatrixTransformToParent(sixDOFCalculatedToFiveDOF)
+    originFiveDOF = [0.0, 0.0, 0.0, 1.0]
+    fiveDOFOriginInRef = [0.0,0.0,0.0,1.0]
+    fiveDOFOriginInSixDOF = [0.0, 0.0, 0.0, 1.0]
+    fiveDOFToReference.MultiplyPoint(originFiveDOF, fiveDOFOriginInRef)
+    referenceToSixDOF.MultiplyPoint(fiveDOFOriginInRef, fiveDOFOriginInSixDOF)
+    fiveDOFCalculatedToSixDOF = vtk.vtkMatrix4x4()
+    fiveDOFCalculatedToSixDOF.SetElement(2,3, fiveDOFOriginInSixDOF[2] - self.base5DOFTo6DOFZOffset)
+    self.FiveCalculatedToSixTransform.SetMatrixTransformToParent(fiveDOFCalculatedToSixDOF)
 
   #-------------------------------------------------------
-  def zeroJawsCalibration(self):
+  def ZeroJawsCalibration(self):
     if self.sixDOFTransformNode == None or self.fiveDOFTransformNode == None:
       return
 
@@ -458,20 +668,36 @@ class NeoGuidanceLogic(ScriptedLoadableModuleLogic):
     self.fiveDOFTransformNode.GetMatrixTransformToParent(fiveDOFToReference)
     sixDOFToReference = vtk.vtkMatrix4x4()
     self.sixDOFTransformNode.GetMatrixTransformToParent(sixDOFToReference)
-    referenceToFiveDOF = vtk.vtkMatrix4x4()
-    referenceToFiveDOF.DeepCopy(fiveDOFToReference)
-    referenceToFiveDOF.Invert();
+    referenceToSixDOF = vtk.vtkMatrix4x4()
+    referenceToSixDOF.DeepCopy(sixDOFToReference)
+    referenceToSixDOF.Invert()
 
-    originSixDOF = [0.0, 0.0, 0.0, 1.0]
-    sixDOFOriginInRef = [0.0,0.0,0.0,1.0]
-    sixDOFOriginInFiveDOF = [0.0, 0.0, 0.0, 1.0]
-    sixDOFToReference.MultiplyPoint(originSixDOF, sixDOFOriginInRef)
-    referenceToFiveDOF.MultiplyPoint(sixDOFOriginInRef, sixDOFOriginInFiveDOF)
-    self.baseSixDOFTo5DOFZOffset = sixDOFOriginInFiveDOF[2]
+    originFiveDOF = [0.0, 0.0, 0.0, 1.0]
+    fiveDOFOriginInRef = [0.0, 0.0, 0.0, 1.0]
+    fiveDOFOriginInSixDOF = [0.0, 0.0, 0.0, 1.0]
+    fiveDOFToReference.MultiplyPoint(originFiveDOF, fiveDOFOriginInRef)
+    referenceToSixDOF.MultiplyPoint(fiveDOFOriginInRef, fiveDOFOriginInSixDOF)
+    self.base5DOFTo6DOFZOffset = fiveDOFOriginInSixDOF[2]
 
   #-------------------------------------------------------
-  def guidanceToggle(self, onOff):
-    pass
+  def GuidanceToggle(self, onOff):
+    self.guidanceOn = not self.guidanceOn
+
+  # -------------------------------------------------------
+  def ParentJawModel(self):
+    if not self.jawModelNode or not self.sixDOFTransformNode or not self.sixDOFModelTo6DOFTransformNode:
+      return
+
+    self.jawModelNode.SetAndObserveTransformNodeID(self.sixDOFModelTo6DOFTransformNode.GetID())
+    self.sixDOFModelTo6DOFTransformNode.SetAndObserveTransformNodeID(self.sixDOFTransformNode.GetID())
+
+  #-------------------------------------------------------
+  def ParentNoseModel(self):
+    if not self.noseModelNode:
+      return
+
+    self.noseModelNode.SetAndObserveTransformNodeID(self.fiveDOFModelTo5DOFCalculatedTransformNode.GetID())
+    self.fiveDOFModelTo5DOFCalculatedTransformNode.SetAndObserveTransformNodeID(self.FiveCalculatedToSixTransform.GetID())
 
 #-------------------------------------------------------
 #
