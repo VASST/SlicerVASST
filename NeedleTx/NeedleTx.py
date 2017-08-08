@@ -6,17 +6,17 @@ import logging
 
 #-------------------------------------------------------
 #
-# EpiGuide
+# NeedleTx
 #
 #-------------------------------------------------------
-class EpiGuide(ScriptedLoadableModule):
+class NeedleTx(ScriptedLoadableModule):
   """Uses ScriptedLoadableModule base class, available at:
   https://github.com/Slicer/Slicer/blob/master/Base/Python/slicer/ScriptedLoadableModule.py
   """
 
   def __init__(self, parent):
     ScriptedLoadableModule.__init__(self, parent)
-    self.parent.title = "EpiGuide NeedleTx" # TODO make this more human readable by adding spaces
+    self.parent.title = "NeedleTx" # TODO make this more human readable by adding spaces
     self.parent.categories = ["IGT"]
     self.parent.dependencies = []
     self.parent.contributors = ["Golafsoun Ameri, Adam Rankin (Robarts Research Institute)"]
@@ -32,10 +32,10 @@ and Steve Pieper, Isomics, Inc. and was partially funded by NIH grant 3P41RR0132
 
 #-------------------------------------------------------
 #
-# EpiGuideWidget
+# NeedleTxWidget
 #
 #-------------------------------------------------------
-class EpiGuideWidget(ScriptedLoadableModuleWidget):
+class NeedleTxWidget(ScriptedLoadableModuleWidget):
   """Uses ScriptedLoadableModuleWidget base class, available at:
   https://github.com/Slicer/Slicer/blob/master/Base/Python/slicer/ScriptedLoadableModule.py
   """
@@ -286,10 +286,10 @@ class EpiGuideWidget(ScriptedLoadableModuleWidget):
     self.view.GetInteractor().Initialize()
 
 #
-# EpiGuideLogic
+# NeedleTxLogic
 #
 
-class EpiGuideLogic(ScriptedLoadableModuleLogic):
+class NeedleTxLogic(ScriptedLoadableModuleLogic):
   """This class should implement all the actual
   computation done by your module.  The interface
   should be such that other python code can import
@@ -305,10 +305,10 @@ class EpiGuideLogic(ScriptedLoadableModuleLogic):
 
 #-------------------------------------------------------
 #
-# EpiGuideTest
+# NeedleTxTest
 #
 #-------------------------------------------------------	
-class EpiGuideTest(ScriptedLoadableModuleTest):
+class NeedleTxTest(ScriptedLoadableModuleTest):
   """
   This is the test case for your scripted module.
   Uses ScriptedLoadableModuleTest base class, available at:
@@ -324,9 +324,9 @@ class EpiGuideTest(ScriptedLoadableModuleTest):
     """Run as few or as many tests as needed here.
     """
     self.setUp()
-    self.test_EpiGuide1()
+    self.test_NeedleTx1()
 
-  def test_EpiGuide1(self):
+  def test_NeedleTx1(self):
     """ Ideally you should have several levels of tests.  At the lowest level
     tests should exercise the functionality of the logic with different inputs
     (both valid and invalid).  At higher levels your tests should emulate the
@@ -358,7 +358,7 @@ class EpiGuideTest(ScriptedLoadableModuleTest):
     self.delayDisplay('Finished with download and loading')
 
     volumeNode = slicer.util.getNode(pattern="FA")
-    logic = EpiGuideLogic()
+    logic = NeedleTxLogic()
     self.assertIsNotNone( logic.hasImageData(volumeNode) )
     self.delayDisplay('Test passed!')
 
