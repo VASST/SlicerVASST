@@ -3,6 +3,10 @@ from __main__ import vtk, qt, ctk, slicer
 
 from Guidelet import GuideletLoadable, GuideletLogic, GuideletTest, GuideletWidget
 from Guidelet import Guidelet
+# #from qt-scripted-modules import PlusRemote
+#
+# from slicer.ScriptedLoadableModule import *
+
 import logging
 import time
 import math
@@ -119,11 +123,13 @@ class EpiGuideGuidelet(Guidelet):
     self.trajectoryModel_needleModel = None
     self.trajectoryModel_needleTip = None
 
-    n = slicer.mrmlScene.AddNode(slicer.vtkMRMLIGTLConnectorNode())
-    n.SetTypeClient('129.100.44.102', 18944)
-    n.Start()
+    from PlusRemote import PlusRemoteLogic
+    self.agilentCommandLogic = PlusRemoteLogic()
+    self.agilentConnectorNode = slicer.mrmlScene.AddNode(slicer.vtkMRMLIGTLConnectorNode())
+    self.agilentConnectorNode.SetTypeClient('129.100.44.102', 18944)
+    self.agilentConnectorNode.Start()
 
-    slicer.app.processEvents()
+    #slicer.app.processEvents()
     self.needleModelTipRadius = 0.0
 
     # Set up main frame
@@ -131,23 +137,23 @@ class EpiGuideGuidelet(Guidelet):
     self.sliceletDockWidget.setWindowTitle('EpiGuideNav')
     self.mainWindow.setWindowTitle('Epidural injection navigation')
 
-    self.setupScene()
+    #self.setupScene()
 
     self.navigationView = self.VIEW_TRIPLE_3D # should we change to VIEW_ULTRASOUND_3D_3DCHART ???
 
-    qt.QTimer().singleShot(500, self.assurePeaksParented)
+    #qt.QTimer().singleShot(500, self.assurePeaksParented) # 500
 
-  def assurePeaksParented(self):
-    # Check every 1/2 second if the transforms exist, if they do, parent them and stop checking
-    if self.findPeakTransforms() == False:
-      slicer.app.processEvents()
-      qt.QTimer().singleShot(500, self.assurePeaksParented)
-      return
-
-    self.parentPeakTransforms(self.needleTipToNeedle,
-                              self.firstPeakToSETTipTransformNode,
-                              self.secondPeakToSETTipTransformNode,
-                              self.thirdPeakToSETTipTransformNode)
+  # def assurePeaksParented(self):
+  #   # Check every 1/2 second if the transforms exist, if they do, parent them and stop checking
+  #   if self.findPeakTransforms() == False:
+  #     slicer.app.processEvents()
+  #     qt.QTimer().singleShot(500, self.assurePeaksParented) #500
+  #     return
+  #
+  #   self.parentPeakTransforms(self.needleTipToNeedle,
+  #                             self.firstPeakToSETTipTransformNode,
+  #                             self.secondPeakToSETTipTransformNode,
+  #                             self.thirdPeakToSETTipTransformNode)
 
   def createFeaturePanels(self):
     # Create GUI panels.
@@ -171,7 +177,11 @@ class EpiGuideGuidelet(Guidelet):
     Guidelet.setupConnections(self)
 
     self.navigationCollapsibleButton.connect('toggled(bool)', self.onNavigationPanelToggled)
-    import Viewpoint
+    # Add our own behaviour (in addition to the default behavior) of the Ultrasound record button
+    self.ultrasound.startStopRecordingButton.connect('clicked(bool)', self.onStartStopRecordingButtonClicked)
+    ######## Camera Sep8.17
+    #self.leftBullseyeCameraButton.connect('clicked()', lambda: self.onCameraButtonClicked('View1'))
+
 
   def registerCustomLayouts(self):
     Guidelet.registerCustomLayouts(self)
@@ -200,7 +210,7 @@ class EpiGuideGuidelet(Guidelet):
       "  </layout>"
       " </item>"
       "</layout>")
-    self.slice3DChartCustomLayoutId = 508
+    self.slice3DChartCustomLayoutId = 5000
     layoutLogic.GetLayoutNode().AddLayoutDescription(self.slice3DChartCustomLayoutId, customLayout)
 
   def setupScene(self):  # applet specific
@@ -211,6 +221,7 @@ class EpiGuideGuidelet(Guidelet):
     self.timer = qt.QTimer()
     self.timer.connect('timeout()', self.OnTimerTimeout)
     self.timer.start(16.7)
+    #self.timer.start(0)
 
     # ReferenceToRas is needed for ultrasound initialization, so we need to
     # set it up before calling Guidelet.setupScene().
@@ -222,8 +233,8 @@ class EpiGuideGuidelet(Guidelet):
       if m is None:
         # By default ReferenceToRas is tilted 15deg around the patient LR axis as the reference
         # sensor is attached to the sternum, which is not horizontal.
-        m = self.logic.createMatrixFromString('0 0 -1 0 0.258819 -0.965926 0 0 -0.965926 -0.258819 0 0 0 0 0 1')
-        #m = self.logic.createMatrixFromString('1.0 0.0 0.0 0.0 0.0 1.0 0.0 0.0 0.0 0.0 1.0 0.0 0 0 0 1')
+        #m = self.logic.createMatrixFromString('0 0 -1 0 0.258819 -0.965926 0 0 -0.965926 -0.258819 0 0 0 0 0 1')
+        m = self.logic.createMatrixFromString('1.0 0.0 0.0 0.0 0.0 1.0 0.0 0.0 0.0 0.0 1.0 0.0 0 0 0 1')
       self.referenceToRas.SetMatrixTransformToParent(m)
       slicer.mrmlScene.AddNode(self.referenceToRas)
 
@@ -282,9 +293,10 @@ class EpiGuideGuidelet(Guidelet):
     self.needleModel_NeedleTip = slicer.util.getNode('NeedleModel')
     if not self.needleModel_NeedleTip:
       # length, radius, tipradius, bool markers, vtkMRMLModelNode(1 or 0: creates a ring close to tip)
+      # length, radius, tipradius, bool markers, vtkMRMLModelNode(1 or 0: creates a ring close to tip)
       slicer.modules.createmodels.logic().CreateNeedle(65, 1.0, self.needleModelTipRadius, 0)
       self.needleModel_NeedleTip = slicer.util.getNode(pattern="NeedleModel")
-      self.needleModel_NeedleTip.GetDisplayNode().SetColor(1,0,1)#(0.08, 0.84, 0.1)#(1,0,0)#
+      self.needleModel_NeedleTip.GetDisplayNode().SetColor(0.08, 0.84, 0.1)#(1,0,1)#
       self.needleModel_NeedleTip.SetName("NeedleModel")
       self.needleModel_NeedleTip.GetDisplayNode().SliceIntersectionVisibilityOn()
 
@@ -292,9 +304,9 @@ class EpiGuideGuidelet(Guidelet):
     self.trajectoryModel_needleModel = slicer.util.getNode('TrajectoryModel')
     cylinderLength = 100
     if not self.trajectoryModel_needleModel:
-      self.trajectoryModel_needleModel = slicer.modules.createmodels.logic().CreateCylinder(cylinderLength, 0.2)  # 0.5mm tall, 4mm radius
+      self.trajectoryModel_needleModel = slicer.modules.createmodels.logic().CreateCylinder(cylinderLength, 0.1)  # 0.5mm tall, 4mm radius
       self.trajectoryModel_needleModel.SetName('TrajectoryModel')
-      self.trajectoryModel_needleModel.GetDisplayNode().SetColor(1, 1, 0.5)
+      self.trajectoryModel_needleModel.GetDisplayNode().SetColor(0.69,0.93,0.93)#(1, 1, 0.5)
       # here, we want to bake in a transform to move the origin of the cylinder to one of the ends (intead
       # of being in the middle)
       transformFilter = vtk.vtkTransformPolyDataFilter()
@@ -310,13 +322,14 @@ class EpiGuideGuidelet(Guidelet):
     for i in range(0,number_spheres):
       #  create sphere model
       self.sphereModel_needleModel = slicer.util.getNode('SphereModel')
+      self.sphereModel_needleModel = slicer.util.getNode('SphereModel')
       self.sphereModel_needleModel  = slicer.modules.createmodels.logic().CreateSphere(0.7)  # 0.5mm tall, 4mm radius
       self.sphereModel_needleModel.SetName('SphereModel')
       #self.sphereModel_needleModel .GetDisplayNode().SetColor(0.92, 0.84, 0.92)
       prcentage = (number_spheres -i)/10
       R = 1.0
       G = 1.0
-      B = 0.1 + i * (0.6/(number_spheres-1.0)) # yellow spectrum ranging from 0.1-0.7
+      B = 0.1 + i * (0.7/(number_spheres-1.0)) # yellow spectrum ranging from 0.1-0.7
       # R = i*1.0 / number_spheres*1.0
       # G = (number_spheres*1.0 - i*1.0)/number_spheres*1.0
       # B = 0.0
@@ -353,8 +366,8 @@ class EpiGuideGuidelet(Guidelet):
 
     # Build transform tree
     logging.debug('Set up transform tree')
-    self.needleToReference.SetAndObserveTransformNodeID(self.referenceToRas.GetID())
-    self.needleTipToNeedle.SetAndObserveTransformNodeID(self.needleToReference.GetID())
+    # self.needleToReference.SetAndObserveTransformNodeID(self.referenceToRas.GetID()) # no need- done above
+    # self.needleTipToNeedle.SetAndObserveTransformNodeID(self.needleToReference.GetID()) # no need- done above
     self.needleModelToNeedleTip.SetAndObserveTransformNodeID(self.needleTipToNeedle.GetID())
     self.needleModel_NeedleTip.SetAndObserveTransformNodeID(self.needleModelToNeedleTip.GetID())
     #self.liveUltrasoundNode_Reference.SetAndObserveTransformNodeID(self.referenceToRas.GetID()) # always commented out
@@ -367,13 +380,13 @@ class EpiGuideGuidelet(Guidelet):
 
     # Hide slice view annotations (patient name, scale, color bar, etc.) as they
     # decrease reslicing performance by 20%-100%
-    logging.debug('Hide slice view annotations')
-    import DataProbe
-    dataProbeUtil = DataProbe.DataProbeLib.DataProbeUtil()
-    dataProbeParameterNode = dataProbeUtil.getParameterNode()
-    dataProbeParameterNode.SetParameter('showSliceViewAnnotations', '0')
+    #logging.debug('Hide slice view annotations')
+    #import DataProbe
+    #dataProbeUtil = DataProbe.DataProbeLib.DataProbeUtil()
+    #dataProbeParameterNode = dataProbeUtil.getParameterNode()
+    #dataProbeParameterNode.SetParameter('showSliceViewAnnotations', '0')
 
-    self.loadPeakModels()
+    # self.loadPeakModels()
 
   def disconnect(self):  # TODO see connect
     logging.debug('EpiGuide.disconnect()')
@@ -381,6 +394,23 @@ class EpiGuideGuidelet(Guidelet):
 
   # Remove observer to old parameter node
     self.navigationCollapsibleButton.disconnect('toggled(bool)', self.onNavigationPanelToggled)
+    self.ultrasound.startStopRecordingButton.disconnect('clicked(bool)', self.onStartStopRecordingButtonClicked)
+
+  def onStartStopRecordingButtonClicked(self):
+    # You can create a intelligent file name based on participant, trial #, etc... (you may have to create a UI)
+    # or you can just send a dummy filename and rename it later
+    if self.ultrasound.startStopRecordingButton.isChecked():
+      self.agilentCommandLogic.startRecording(self.agilentConnectorNode.GetID(), self.ultrasound.captureDeviceName, 'agilent.nrrd', True, self.printCommandResponse)
+    else:
+      self.agilentCommandLogic.stopRecording(self.agilentConnectorNode.GetID(), self.ultrasound.captureDeviceName, self.printCommandResponse)
+
+  def printCommandResponse(self, command, q):
+    statusText = "Command {0} [{1}]: {2}\n".format(command.GetCommandName(), command.GetID(), command.StatusToString(command.GetStatus()))
+    if command.GetResponseMessage():
+      statusText = statusText + command.GetResponseMessage()
+    elif command.GetResponseText():
+      statusText = statusText + command.GetResponseText()
+      print statusText
 
   def onUltrasoundPanelToggled(self, toggled):
     Guidelet.onUltrasoundPanelToggled(self, toggled)
@@ -481,8 +511,14 @@ class EpiGuideGuidelet(Guidelet):
     # Check out layout request first, then pass on to parent to handle the existing ones
     text = self.viewSelectorComboBox.currentText
     if text == self.VIEW_ULTRASOUND_3D_3DCHART:
-      self.layoutManager.setLayout(self.slice3DChartCustomLayoutId)
+      # self.layoutManager.setLayout(self.slice3DChartCustomLayoutId)
+      # self.delayedFitUltrasoundImageToView() # (8.30.17) may want to add this, but no change:
+      # self.showUltrasoundIn3dView(True)
+      # ####### this should keep the 2 panel
+      self.layoutManager.setLayout(self.red3dCustomLayoutId)
       self.delayedFitUltrasoundImageToView()
+      self.showUltrasoundIn3dView(True)
+      # ######
       self.populateChart()
       return
 
@@ -510,97 +546,97 @@ class EpiGuideGuidelet(Guidelet):
     self.view.GetInteractor().Render()
 
 
-  def loadPeakModels(self):
-    # Calling this function will ask SlicerIGT's create models to create 3 disks (short cylinders),
-    #
-    # To make this more advanced, you could have it clean up any existing models (look for by name using slicer.util.getNode)
-    # so you could call this repeatedly. However, best to just call this once (in init or setup)
-    if self.firstPeakModelNode is None:
-      self.firstPeakModelNode = slicer.util.getNode('FirstPeakModel')
-      if self.firstPeakModelNode is None:
-        self.firstPeakModelNode = slicer.modules.createmodels.logic().CreateCylinder(0.5, 4)  # 0.5mm tall, 4mm radius
-        self.firstPeakModelNode.SetName('FirstPeakModel')
-        self.firstPeakModelNode.GetDisplayNode().SetColor(1.0, 0.0, 0.0)  # r, g, b [0.0,1.0]
+  # def loadPeakModels(self):
+  #   # Calling this function will ask SlicerIGT's create models to create 3 disks (short cylinders),
+  #   #
+  #   # To make this more advanced, you could have it clean up any existing models (look for by name using slicer.util.getNode)
+  #   # so you could call this repeatedly. However, best to just call this once (in init or setup)
+  #   if self.firstPeakModelNode is None:
+  #     self.firstPeakModelNode = slicer.util.getNode('FirstPeakModel')
+  #     if self.firstPeakModelNode is None:
+  #       self.firstPeakModelNode = slicer.modules.createmodels.logic().CreateCylinder(0.5, 4)  # 0.5mm tall, 4mm radius
+  #       self.firstPeakModelNode.SetName('FirstPeakModel')
+  #       self.firstPeakModelNode.GetDisplayNode().SetColor(1.0, 0.0, 0.0)  # r, g, b [0.0,1.0]
+  #
+  #   if self.secondPeakModelNode is None:
+  #     self.secondPeakModelNode = slicer.util.getNode('SecondPeakModel')
+  #     if self.secondPeakModelNode is None:
+  #       self.secondPeakModelNode = slicer.modules.createmodels.logic().CreateCylinder(0.5, 4)  # 0.5mm tall, 4mm radius
+  #       self.secondPeakModelNode.SetName('SecondPeakModel')
+  #       self.secondPeakModelNode.GetDisplayNode().SetColor(0.0, 1.0, 0.0)  # r, g, b [0.0,1.0]
+  #
+  #   if self.thirdPeakModelNode is None:
+  #     self.thirdPeakModelNode = slicer.util.getNode('ThirdPeakModel')
+  #     if self.thirdPeakModelNode is None:
+  #       self.thirdPeakModelNode = slicer.modules.createmodels.logic().CreateCylinder(0.5, 4)  # 0.5mm tall, 4mm radius
+  #       self.thirdPeakModelNode.SetName('ThirdPeakModel')
+  #       self.thirdPeakModelNode.GetDisplayNode().SetColor(0.0, 0.0, 1.0)  # r, g, b [0.0,1.0]
 
-    if self.secondPeakModelNode is None:
-      self.secondPeakModelNode = slicer.util.getNode('SecondPeakModel')
-      if self.secondPeakModelNode is None:
-        self.secondPeakModelNode = slicer.modules.createmodels.logic().CreateCylinder(0.5, 4)  # 0.5mm tall, 4mm radius
-        self.secondPeakModelNode.SetName('SecondPeakModel')
-        self.secondPeakModelNode.GetDisplayNode().SetColor(0.0, 1.0, 0.0)  # r, g, b [0.0,1.0]
 
-    if self.thirdPeakModelNode is None:
-      self.thirdPeakModelNode = slicer.util.getNode('ThirdPeakModel')
-      if self.thirdPeakModelNode is None:
-        self.thirdPeakModelNode = slicer.modules.createmodels.logic().CreateCylinder(0.5, 4)  # 0.5mm tall, 4mm radius
-        self.thirdPeakModelNode.SetName('ThirdPeakModel')
-        self.thirdPeakModelNode.GetDisplayNode().SetColor(0.0, 0.0, 1.0)  # r, g, b [0.0,1.0]
+  # def parentPeakTransforms(self, setTipToReferenceTransformNode, firstPeakToSETTipTransformNode,
+  #                       secondPeakToSETTipTransformNode, thirdPeakToSETTipTransformNode):
+  #   # parent each disk to a peak transform, and parent each peak transform to the setTipToReference
+  #   # Prior to calling this, you will have to identify which transformNode corresponds to which peak
+  #   # These should be sent from plus as FirstPeakToReference, SecondPeakToReference, etc...
+  #   # To find those, after connecting to Plus (oscilloscope machine)
+  #   #
+  #   # self.firstPeakNode = slicer.util.getNode('FirstPeakToReference')
+  #   # self.secondPeakNode = slicer.util.getNode('SecondPeakToReference')
+  #   # ...
+  #   # then call
+  #   # self.parentPeakTransforms(self.tipToReferenceNode, self.firstPeakNode, self.secondPeakNode, self.thirdPeakNode)
+  #   if firstPeakToSETTipTransformNode is None:
+  #     logging.Debug("first peak null")
+  #     return
+  #   if secondPeakToSETTipTransformNode is None:
+  #     logging.Debug("second peak null")
+  #     return
+  #   if thirdPeakToSETTipTransformNode is None:
+  #     logging.Debug("third peak null")
+  #     return
+  #
+  #   self.firstPeakModelNode.SetAndObserveTransformNodeID(firstPeakToSETTipTransformNode.GetID())
+  #   firstPeakToSETTipTransformNode.SetAndObserveTransformNodeID(setTipToReferenceTransformNode.GetID())
+  #
+  #   self.secondPeakModelNode.SetAndObserveTransformNodeID(secondPeakToSETTipTransformNode.GetID())
+  #   secondPeakToSETTipTransformNode.SetAndObserveTransformNodeID(setTipToReferenceTransformNode.GetID())
+  #
+  #   self.thirdPeakModelNode.SetAndObserveTransformNodeID(thirdPeakToSETTipTransformNode.GetID())
+  #   thirdPeakToSETTipTransformNode.SetAndObserveTransformNodeID(setTipToReferenceTransformNode.GetID())
 
-
-  def parentPeakTransforms(self, setTipToReferenceTransformNode, firstPeakToSETTipTransformNode,
-                        secondPeakToSETTipTransformNode, thirdPeakToSETTipTransformNode):
-    # parent each disk to a peak transform, and parent each peak transform to the setTipToReference
-    # Prior to calling this, you will have to identify which transformNode corresponds to which peak
-    # These should be sent from plus as FirstPeakToReference, SecondPeakToReference, etc...
-    # To find those, after connecting to Plus (oscilloscope machine)
-    #
-    # self.firstPeakNode = slicer.util.getNode('FirstPeakToReference')
-    # self.secondPeakNode = slicer.util.getNode('SecondPeakToReference')
-    # ...
-    # then call
-    # self.parentPeakTransforms(self.tipToReferenceNode, self.firstPeakNode, self.secondPeakNode, self.thirdPeakNode)
-    if firstPeakToSETTipTransformNode is None:
-      logging.Debug("first peak null")
-      return
-    if secondPeakToSETTipTransformNode is None:
-      logging.Debug("second peak null")
-      return
-    if thirdPeakToSETTipTransformNode is None:
-      logging.Debug("third peak null")
-      return
-
-    self.firstPeakModelNode.SetAndObserveTransformNodeID(firstPeakToSETTipTransformNode.GetID())
-    firstPeakToSETTipTransformNode.SetAndObserveTransformNodeID(setTipToReferenceTransformNode.GetID())
-
-    self.secondPeakModelNode.SetAndObserveTransformNodeID(secondPeakToSETTipTransformNode.GetID())
-    secondPeakToSETTipTransformNode.SetAndObserveTransformNodeID(setTipToReferenceTransformNode.GetID())
-
-    self.thirdPeakModelNode.SetAndObserveTransformNodeID(thirdPeakToSETTipTransformNode.GetID())
-    thirdPeakToSETTipTransformNode.SetAndObserveTransformNodeID(setTipToReferenceTransformNode.GetID())
-
-  def findPeakTransforms(self):
-    # Try to find peaks
-    self.firstPeakToSETTipTransformNode = slicer.util.getNode('FirstPeakToNeedleTip')
-    if self.firstPeakToSETTipTransformNode is None:
-      # Cannot find a peak, this is not the connector you're looking for
-      return False
-
-    # Note the missing p at the end, OpenIGTLink has a maxmimum character count of 20
-    self.secondPeakToSETTipTransformNode = slicer.util.getNode('SecondPeakToNeedleTi')
-    if self.secondPeakToSETTipTransformNode is None:
-      # Cannot find a peak, this is not the connector you're looking for
-      return False
-
-    self.thirdPeakToSETTipTransformNode = slicer.util.getNode('ThirdPeakToNeedleTip')
-    if self.thirdPeakToSETTipTransformNode is None:
-      # Cannot find a peak, this is not the connector you're looking for
-      return False
-
-    return True
+  # def findPeakTransforms(self):
+  #   # Try to find peaks
+  #   self.firstPeakToSETTipTransformNode = slicer.util.getNode('FirstPeakToNeedleTip')
+  #   if self.firstPeakToSETTipTransformNode is None:
+  #     # Cannot find a peak, this is not the connector you're looking for
+  #     return False
+  #
+  #   # Note the missing p at the end, OpenIGTLink has a maxmimum character count of 20
+  #   self.secondPeakToSETTipTransformNode = slicer.util.getNode('SecondPeakToNeedleTi')
+  #   if self.secondPeakToSETTipTransformNode is None:
+  #     # Cannot find a peak, this is not the connector you're looking for
+  #     return False
+  #
+  #   self.thirdPeakToSETTipTransformNode = slicer.util.getNode('ThirdPeakToNeedleTip')
+  #   if self.thirdPeakToSETTipTransformNode is None:
+  #     # Cannot find a peak, this is not the connector you're looking for
+  #     return False
+  #
+  #   return True
 
   # this will not work, because this is onConnectorNodeConnected for the 'default' connector node, not our
   # secondary one
-  def onConnectorNodeConnected(self, caller, event, force=False):
-    Guidelet.onConnectorNodeConnected(self, caller, event, force)
-
-    if self.findPeakTransforms() == False:
-      return
-
-    if self.needleTipToNeedle is None:
-      # Needle tip transform not available
-      return
-
-    self.parentPeakTransforms(self.needleTipToNeedle,
-                              self.firstPeakToSETTipTransformNode,
-                              self.secondPeakToSETTipTransformNode,
-                              self.thirdPeakToSETTipTransformNode)
+  # def onConnectorNodeConnected(self, caller, event, force=False):
+  #   Guidelet.onConnectorNodeConnected(self, caller, event, force)
+  #
+  #   if self.findPeakTransforms() == False:
+  #     return
+  #
+  #   if self.needleTipToNeedle is None:
+  #     # Needle tip transform not available
+  #     return
+  #
+  #   self.parentPeakTransforms(self.needleTipToNeedle,
+  #                             self.firstPeakToSETTipTransformNode,
+  #                             self.secondPeakToSETTipTransformNode,
+  #                             self.thirdPeakToSETTipTransformNode)
