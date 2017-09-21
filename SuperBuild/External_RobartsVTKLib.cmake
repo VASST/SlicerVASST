@@ -30,8 +30,8 @@ if(NOT DEFINED ${proj}_DIR AND NOT ${CMAKE_PROJECT_NAME}_USE_SYSTEM_${proj})
     SOURCE_DIR ${CMAKE_BINARY_DIR}/${proj}
     BINARY_DIR ${proj}-build
     #--Download step--------------
-    GIT_REPOSITORY http://Git.imaging.robarts.ca/vasst/RobartsVTK.git
-    GIT_TAG "master"
+    GIT_REPOSITORY https://github.com/VASST/RobartsVTK.git
+    GIT_TAG master
     #--Configure step-------------
     CMAKE_CACHE_ARGS
       -DCMAKE_CXX_COMPILER:FILEPATH=${CMAKE_CXX_COMPILER}
