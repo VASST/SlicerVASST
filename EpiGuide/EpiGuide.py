@@ -38,9 +38,14 @@ class EpiGuideGuidelet(Guidelet):
 
 
     def __init__(self, parent, logic, configurationName='Default'):
+        self.slice3DChartCustomLayoutId = 5000 # Must come before Guidelet.__init__
         Guidelet.__init__(self, parent, logic, configurationName)
+
         logging.debug('EpiGuideGuidelet.__init__')
         self.logic.addValuesToDefaultConfiguration()
+
+        # for debugging purposes only, to be removed
+        slicer.epi = self
 
         self.navigationCollapsibleButton = None
 
@@ -67,13 +72,10 @@ class EpiGuideGuidelet(Guidelet):
         self.trajectoryModel_needleModel = None
         self.trajectoryModel_needleTip = None
 
-        self.slice3DChartCustomLayoutId = 5000
-
         self.referenceToRasTransform = None
         self.needleTipToNeedleTransform = None
         self.needleModelToNeedleTipTransform = None
         self.trajModelToNeedleTipTransform = None
-        self.sphereModelToNeedleTipTransform = None
         self.needleToReferenceTransform = None
         self.setTipToReferenceTransformNode = None
 
@@ -83,11 +85,12 @@ class EpiGuideGuidelet(Guidelet):
 
         self.agilentCommandLogic = PlusRemoteLogic()
         self.agilentConnectorNode = slicer.mrmlScene.AddNode(slicer.vtkMRMLIGTLConnectorNode())
+        self.agilentConnectorNode.SetLogErrorIfServerConnectionFailed(False)
 
-        agilentServerHostNamePort = slicer.app.userSettings().value(self.moduleName + '/Configurations/' + self.selectedConfigurationName + '/AgilentServerHostNamePort')
-        [hostName, port] = agilentServerHostNamePort.split(':')
+        hostNamePort = self.parameterNode.GetParameter('AgilentServerHostNamePort')  # example: "localhost:18944"
+        [hostName, port] = hostNamePort.split(':')
 
-        self.agilentConnectorNode.SetTypeClient(hostName, port)
+        self.agilentConnectorNode.SetTypeClient(hostName, int(port))
         self.agilentConnectorNode.Start()
 
         self.needleModelTipRadius = 0.0
@@ -134,8 +137,6 @@ class EpiGuideGuidelet(Guidelet):
         self.view = None
         self.signalArray = None
         self.distanceArray = None
-        self.boundsRecalculated = False
-        self.fitUltrasoundImageToViewOnConnect = True
 
         self.firstPeakToSETTipTransformNode = None
         self.secondPeakToSETTipTransformNode = None
@@ -149,13 +150,10 @@ class EpiGuideGuidelet(Guidelet):
         self.trajectoryModel_needleModel = None
         self.trajectoryModel_needleTip = None
 
-        self.slice3DChartCustomLayoutId = 5000
-
         self.referenceToRasTransform = None
         self.needleTipToNeedleTransform = None
         self.needleModelToNeedleTipTransform = None
         self.trajModelToNeedleTipTransform = None
-        self.sphereModelToNeedleTipTransform = None
         self.needleToReferenceTransform = None
         self.setTipToReferenceTransformNode = None
 
@@ -206,7 +204,7 @@ class EpiGuideGuidelet(Guidelet):
 
         # Add a Qt timer, that fires every X ms (16.7ms = 60 FPS, 33ms = 30FPS)
         # Connect the timeout() signal of the qt timer to a function in this class that you will write
-        self.timer.connect('timeout()', self.OnTimerTimeout)
+        self.timer.connect('timeout()', self.onTimerTimeout)
         self.timer.start(16.7)
 
         # ReferenceToRas is needed for ultrasound initialization, so we need to
@@ -254,15 +252,6 @@ class EpiGuideGuidelet(Guidelet):
                 self.trajModelToNeedleTipTransform.SetMatrixTransformToParent(m)
             slicer.mrmlScene.AddNode(self.trajModelToNeedleTipTransform)
 
-        self.sphereModelToNeedleTipTransform = slicer.util.getNode('SphereModelToNeedleTip')
-        if not self.sphereModelToNeedleTipTransform:
-            self.sphereModelToNeedleTipTransform = slicer.vtkMRMLLinearTransformNode()
-            self.sphereModelToNeedleTipTransform.SetName("SphereModelToNeedleTip")
-            m = self.logic.readTransformFromSettings('SphereModelToNeedleTip', self.configurationName)
-            if m:
-                self.sphereModelToNeedleTipTransform.SetMatrixTransformToParent(m)
-            slicer.mrmlScene.AddNode(self.sphereModelToNeedleTipTransform)
-
         # Create transforms that will be updated through OpenIGTLink
         self.needleToReferenceTransform = slicer.util.getNode('NeedleToReference')
         if not self.needleToReferenceTransform:
@@ -290,7 +279,7 @@ class EpiGuideGuidelet(Guidelet):
                                                                                                   0.1)  # 0.5mm tall, 4mm radius
             self.trajectoryModel_needleModel.SetName('TrajectoryModel')
             self.trajectoryModel_needleModel.GetDisplayNode().SetColor(0.69, 0.93, 0.93)  # (1, 1, 0.5)
-            # here, we want to bake in a transform to move the origin of the cylinder to one of the ends (intead
+            # here, we want to bake in a transform to move the origin of the cylinder to one of the ends (instead
             # of being in the middle)
             transformFilter = vtk.vtkTransformPolyDataFilter()
             transformFilter.SetInputConnection(self.trajectoryModel_needleModel.GetPolyDataConnection())
@@ -314,18 +303,24 @@ class EpiGuideGuidelet(Guidelet):
                 model.GetDisplayNode().SetColor(R, G, B)
 
             # create transform node, apply z translation i*distanceBetweenMarkers
-            sphereTransformFilter = vtk.vtkTransformPolyDataFilter()
-            sphereTransformFilter.SetInputConnection(self.sphereModel_needleModel.GetPolyDataConnection())
-            sphereTrans = vtk.vtkTransform()
-            sphereTrans.Translate(0, 0, (i + 1) * 10)
-            sphereTransformFilter.SetTransform(sphereTrans)
-            sphereTransformFilter.Update()
-            self.sphereModel_needleModel.SetPolyDataConnection(sphereTransformFilter.GetOutputPort())
+            node = slicer.util.getNode('DistanceMarkerTransform_'+str(i))
+            if node is None:
+                node = slicer.vtkMRMLLinearTransformNode()
+                node.SetName('DistanceMarkerTransform_'+str(i))
+                slicer.mrmlScene.AddNode(node)
 
-            self.needleToReferenceTransform.SetAndObserveTransformNodeID(self.referenceToRasTransform.GetID())
-            self.needleTipToNeedleTransform.SetAndObserveTransformNodeID(self.needleToReferenceTransform.GetID())
-            self.sphereModelToNeedleTipTransform.SetAndObserveTransformNodeID(self.needleTipToNeedleTransform.GetID())
-            self.sphereModel_needleModel.SetAndObserveTransformNodeID(self.sphereModelToNeedleTipTransform.GetID())
+            m = self.logic.createMatrixFromString('1.0 0.0 0.0 0.0 '
+                                                  '0.0 1.0 0.0 0.0 '
+                                                  '0.0 0.0 1.0 ' + str((i+1)*10.0) + ' '
+                                                  '0.0 0.0 0.0 1.0')
+            node.SetMatrixTransformToParent(m)
+            model.SetAndObserveTransformNodeID(node.GetID())
+            node.SetAndObserveTransformNodeID(self.needleTipToNeedleTransform.GetID())
+
+        # Setup the needle tip hierarchy
+        self.needleToReferenceTransform.SetAndObserveTransformNodeID(self.referenceToRasTransform.GetID())
+        self.needleTipToNeedleTransform.SetAndObserveTransformNodeID(self.needleToReferenceTransform.GetID())
+        self.needleWithTipModel.SetAndObserveTransformNodeID(self.needleTipToNeedleTransform.GetID())
 
         # Build transform tree
         logging.debug('Set up transform tree')
@@ -365,7 +360,7 @@ class EpiGuideGuidelet(Guidelet):
         logging.debug('EpiGuide.disconnect()')
         Guidelet.disconnect(self)
 
-        # Remove observer to old parameter node
+        # Remove observer
         self.navigationCollapsibleButton.disconnect('toggled(bool)', self.onNavigationPanelToggled)
         self.ultrasound.startStopRecordingButton.disconnect('clicked(bool)', self.onStartStopRecordingButtonClicked)
 
@@ -462,7 +457,7 @@ class EpiGuideGuidelet(Guidelet):
         # self.layoutManager.threeDWidget(1).threeDView.renderWindow().GetRenderer().GetFirstRenderer().AddActor(self.contextActor)
 
         self.view.GetInteractor().Initialize()
-        # self.chart.RecalculateBounds() # either here or in OnTimerTimeout
+        # self.chart.RecalculateBounds() # either here or in onTimerTimeout
 
     def onViewSelect(self, layoutIndex):
         # Check out layout request first, then pass on to parent to handle the existing ones
@@ -481,7 +476,7 @@ class EpiGuideGuidelet(Guidelet):
 
         Guidelet.onViewSelect(self, layoutIndex)
 
-    def OnTimerTimeout(self):
+    def onTimerTimeout(self):
         if self.imageData is None or self.imageDimensions is None:
             return
 
@@ -570,6 +565,10 @@ class EpiGuideGuidelet(Guidelet):
             # Cannot find a peak, this is not the connector you're looking for
             return False
         return True
+
+    def setupConnectorNode(self):
+        Guidelet.setupConnectorNode(self)
+        self.connectorNode.SetLogErrorIfServerConnectionFailed(False)
 
     # this will not work, because this is onConnectorNodeConnected for the 'default' connector node, not our
     # secondary one
