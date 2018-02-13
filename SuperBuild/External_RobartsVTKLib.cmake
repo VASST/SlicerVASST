@@ -15,6 +15,11 @@ if(DEFINED RobartsVTKLib_DIR AND NOT EXISTS ${RobartsVTKLib_DIR})
   message(FATAL_ERROR "RobartsVTKLib_DIR variable is defined but corresponds to nonexistent directory")
 endif()
 
+find_package(CUDA QUIET)
+if(CUDA_FOUND)
+
+endif()
+
 if(NOT DEFINED ${proj}_DIR AND NOT ${CMAKE_PROJECT_NAME}_USE_SYSTEM_${proj})
 
   if(NOT DEFINED git_protocol)
@@ -47,10 +52,9 @@ if(NOT DEFINED ${proj}_DIR AND NOT ${CMAKE_PROJECT_NAME}_USE_SYSTEM_${proj})
       -DRobartsVTK_USE_PLUS:BOOL=OFF
       -DRobartsVTK_USE_REGISTRATION:BOOL=ON
       -DRobartsVTK_USE_COMMON:BOOL=ON
-      -DRobartsVTK_USE_CUDA:BOOL=ON
-      -DRobartsVTK_USE_CUDA_VISUALIZATION:BOOL=ON
-      -DRobartsVTK_USE_CUDA_ANALYTICS:BOOL=ON
-      -DRobartsVTK_USE_QT5_ONLY:BOOL=OFF
+      -DRobartsVTK_USE_CUDA:BOOL=${CUDA_FOUND}
+      -DRobartsVTK_USE_CUDA_VISUALIZATION:BOOL=${CUDA_FOUND}
+      -DRobartsVTK_USE_CUDA_ANALYTICS:BOOL=${CUDA_FOUND}
       -DRobartsVTK_BUILD_APPS:BOOL=OFF
       -DRobartsVTK_WRAP_PYTHON:BOOL=ON
       -DVTK_INSTALL_PYTHON_MODULE_DIR:PATH=${Slicer_INSTALL_QTSCRIPTEDMODULES_LIB_DIR}
