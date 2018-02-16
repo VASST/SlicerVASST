@@ -15,9 +15,28 @@ if(DEFINED RobartsVTKLib_DIR AND NOT EXISTS ${RobartsVTKLib_DIR})
   message(FATAL_ERROR "RobartsVTKLib_DIR variable is defined but corresponds to nonexistent directory")
 endif()
 
-find_package(CUDA QUIET)
-if(CUDA_FOUND)
+if(Qt5_DIR)
+  list(APPEND ADDITIONAL_CMAKE_ARGS
+    -DQt5_DIR:PATH=${Qt5_DIR}
+    )
+endif()
 
+if(QT_QMAKE_EXECUTABLE)
+  list(APPEND ADDITIONAL_CMAKE_ARGS
+    -DQT_QMAKE_EXECUTABLE:FILEPATH=${QT_QMAKE_EXECUTABLE}
+    )
+endif()
+
+option(USE_CUDA "Whether to include CUDA classes in the build of RobartsVTKLib" OFF) # Default to OFF until CUDA build machines are enabled
+find_package(CUDA QUIET)
+if(CUDA_FOUND AND USE_CUDA)
+  list(APPEND ADDITIONAL_CMAKE_ARGS
+    -DRobartsVTK_USE_CUDA:BOOL=ON
+    )
+else()
+  list(APPEND ADDITIONAL_CMAKE_ARGS
+    -DRobartsVTK_USE_CUDA:BOOL=OFF
+    )
 endif()
 
 if(NOT DEFINED ${proj}_DIR AND NOT ${CMAKE_PROJECT_NAME}_USE_SYSTEM_${proj})
@@ -39,9 +58,7 @@ if(NOT DEFINED ${proj}_DIR AND NOT ${CMAKE_PROJECT_NAME}_USE_SYSTEM_${proj})
     GIT_TAG master
     #--Configure step-------------
     CMAKE_CACHE_ARGS
-      -DCMAKE_CXX_COMPILER:FILEPATH=${CMAKE_CXX_COMPILER}
       -DCMAKE_CXX_FLAGS:STRING=${ep_common_cxx_flags}
-      -DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER}
       -DCMAKE_C_FLAGS:STRING=${ep_common_c_flags}
       -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
       -DBUILD_TESTING:BOOL=OFF
@@ -53,8 +70,8 @@ if(NOT DEFINED ${proj}_DIR AND NOT ${CMAKE_PROJECT_NAME}_USE_SYSTEM_${proj})
       -DRobartsVTK_USE_REGISTRATION:BOOL=ON
       -DRobartsVTK_USE_COMMON:BOOL=ON
       -DRobartsVTK_USE_CUDA:BOOL=${CUDA_FOUND}
-      -DRobartsVTK_USE_CUDA_VISUALIZATION:BOOL=${CUDA_FOUND}
-      -DRobartsVTK_USE_CUDA_ANALYTICS:BOOL=${CUDA_FOUND}
+      -DRobartsVTK_USE_CUDA_VISUALIZATION:BOOL=ON # Controlled by RobartsVTK_USE_CUDA
+      -DRobartsVTK_USE_CUDA_ANALYTICS:BOOL=ON # Controlled by RobartsVTK_USE_CUDA
       -DRobartsVTK_BUILD_APPS:BOOL=OFF
       -DRobartsVTK_WRAP_PYTHON:BOOL=ON
       -DVTK_INSTALL_PYTHON_MODULE_DIR:PATH=${Slicer_INSTALL_QTSCRIPTEDMODULES_LIB_DIR}
@@ -62,7 +79,7 @@ if(NOT DEFINED ${proj}_DIR AND NOT ${CMAKE_PROJECT_NAME}_USE_SYSTEM_${proj})
       -DPYTHON_INCLUDE_DIR:STRING=${PYTHON_INCLUDE_DIR}
       -DPYTHON_LIBRARY:FILEPATH=${PYTHON_LIBRARY}
       -DPYTHON_EXECUTABLE:FILEPATH=${PYTHON_EXECUTABLE}
-      -DQT_QMAKE_EXECUTABLE:FILEPATH=${QT_QMAKE_EXECUTABLE}
+      ${ADDITIONAL_CMAKE_ARGS}
     #--Install step-----------------
     INSTALL_COMMAND "" # Do not install
     DEPENDS
