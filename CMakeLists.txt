@@ -45,4 +45,5 @@ add_subdirectory(CalibrationAlgo)
 
 #-----------------------------------------------------------------------------
 set(CPACK_INSTALL_CMAKE_PROJECTS "${CPACK_INSTALL_CMAKE_PROJECTS};${CMAKE_BINARY_DIR};${EXTENSION_NAME};ALL;/;${RobartsVTKLib_DIR};RobartsVTKLib;ALL;/robartsVTKLib")
+include(${Slicer_EXTENSION_GENERATE_CONFIG})
 include(${Slicer_EXTENSION_CPACK})
