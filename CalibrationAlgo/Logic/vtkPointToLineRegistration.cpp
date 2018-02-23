@@ -46,7 +46,7 @@ namespace
       {
         R.at<double>(i, j) = matrix->GetElement(i, j);
       }
-      t.at<double>(i, 3) = matrix->GetElement(i, 3);
+      t.at<double>(i, 0) = matrix->GetElement(i, 3);
     }
   }
 
@@ -58,7 +58,7 @@ namespace
       {
         matrix->SetElement(i, j, R.at<double>(i, j));
       }
-      matrix->SetElement(i, 3, t.at<double>(i, 3));
+      matrix->SetElement(i, 3, t.at<double>(i, 0));
     }
   }
 }
@@ -69,7 +69,7 @@ vtkStandardNewMacro(vtkPointToLineRegistration);
 
 //----------------------------------------------------------------------------
 vtkPointToLineRegistration::vtkPointToLineRegistration()
-  : Tolerance(0.0)
+  : Tolerance(1e-4)
   , Error(0.0)
 {
 }
@@ -151,7 +151,7 @@ unsigned int vtkPointToLineRegistration::GetCount() const
 */
 vtkMatrix4x4* vtkPointToLineRegistration::Compute()
 {
-  vtkNew<vtkMatrix4x4> matrix;
+  vtkMatrix4x4* matrix = vtkMatrix4x4::New();
   matrix->Identity();
 
   if (this->Points.size() != this->Lines.size())
@@ -161,16 +161,16 @@ vtkMatrix4x4* vtkPointToLineRegistration::Compute()
 
   // assume column vector
   int n = this->Points.size();
-  cv::Mat e = cv::Mat::ones(1, n, CV_32F);
+  cv::Mat e = cv::Mat::ones(1, n, CV_64F);
   double outError = std::numeric_limits<double>::infinity();
-  cv::Mat E_old = cv::Mat::ones(3, n, CV_32F);
+  cv::Mat E_old = cv::Mat::ones(3, n, CV_64F);
   E_old = E_old * 1000.f;
-  cv::Mat E(3, n, CV_32F);
+  cv::Mat E(3, n, CV_64F);
 
-  cv::Mat O = cv::Mat(3, this->Points.size(), CV_32F);
-  cv::Mat X = cv::Mat(3, this->Points.size(), CV_32F);
-  cv::Mat Y = cv::Mat(3, this->Points.size(), CV_32F);
-  cv::Mat D = cv::Mat(3, this->Points.size(), CV_32F);
+  cv::Mat O = cv::Mat(3, this->Points.size(), CV_64F);
+  cv::Mat X = cv::Mat(3, this->Points.size(), CV_64F);
+  cv::Mat Y = cv::Mat(3, this->Points.size(), CV_64F);
+  cv::Mat D = cv::Mat(3, this->Points.size(), CV_64F);
   for (std::vector<vtkVector3d>::size_type i = 0; i < this->Points.size(); ++i)
   {
     X.at<double>(0, i) = this->Points[i].GetX();
@@ -190,10 +190,10 @@ vtkMatrix4x4* vtkPointToLineRegistration::Compute()
     Y.at<double>(2, i) = this->Lines[i].first.GetZ() + this->Lines[i].second.GetZ();
   }
 
-  cv::Mat d(1, n, CV_32F);
+  cv::Mat d(1, n, CV_64F);
   cv::Mat tempM;
-  cv::Mat R = cv::Mat::eye(3, 3, CV_32F);
-  cv::Mat t = cv::Mat::zeros(3, 1, CV_32F);
+  cv::Mat R = cv::Mat::eye(3, 3, CV_64F);
+  cv::Mat t = cv::Mat::zeros(3, 1, CV_64F);
 
   vtkNew<vtkLandmarkTransform> landmarkRegistration;
   landmarkRegistration->SetModeToRigidBody();
@@ -234,9 +234,6 @@ vtkMatrix4x4* vtkPointToLineRegistration::Compute()
     outError = cv::norm(E - E_old);
     E.copyTo(E_old);
   }
-  source->Delete();
-  target->Delete();
-  result->Delete();
 
   // compute the Euclidean distance between points and lines
   outError = 0.0;
