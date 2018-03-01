@@ -34,6 +34,7 @@ class vtkVector3d;
 // VTK includes
 #include <vtkObject.h>
 #include <vtkSmartPointer.h>
+#include <vtkLandmarkTransform.h>
 
 // Local includes
 #include "vtkSlicerCalibrationAlgoModuleLogicExport.h"
@@ -62,11 +63,17 @@ public:
   vtkMatrix4x4* Compute();
   double GetError() const;
 
+  void SetLandmarkRegistrationMode(int arg);
+  void SetLandmarkRegistrationModeToRigidBody();
+  void SetLandmarkRegistrationModeToAffine();
+  void SetLandmarkRegistrationModeToSimilarity();
+
 public:
   vtkPointToLineRegistration();
   ~vtkPointToLineRegistration();
 
 protected:
+  int                       LandmarkRegistrationMode;
   std::vector<vtkVector3d>  Points;
   std::vector<Line>         Lines;
   double                    Tolerance;

@@ -93,6 +93,30 @@ double vtkSlicerCalibrationAlgoLogic::GetError() const
   return this->PointToLineRegistration->GetError();
 }
 
+//----------------------------------------------------------------------------
+void vtkSlicerCalibrationAlgoLogic::SetLandmarkRegistrationMode(int arg)
+{
+  this->PointToLineRegistration->SetLandmarkRegistrationMode(arg);
+}
+
+//----------------------------------------------------------------------------
+void vtkSlicerCalibrationAlgoLogic::SetLandmarkRegistrationModeToRigidBody()
+{
+  this->PointToLineRegistration->SetLandmarkRegistrationModeToRigidBody();
+}
+
+//----------------------------------------------------------------------------
+void vtkSlicerCalibrationAlgoLogic::SetLandmarkRegistrationModeToAffine()
+{
+  this->PointToLineRegistration->SetLandmarkRegistrationModeToAffine();
+}
+
+//----------------------------------------------------------------------------
+void vtkSlicerCalibrationAlgoLogic::SetLandmarkRegistrationModeToSimilarity()
+{
+  this->PointToLineRegistration->SetLandmarkRegistrationModeToSimilarity();
+}
+
 //---------------------------------------------------------------------------
 void vtkSlicerCalibrationAlgoLogic::SetMRMLSceneInternal(vtkMRMLScene* newScene)
 {

@@ -59,6 +59,11 @@ public:
   unsigned int GetCount() const;
   double GetError() const;
 
+  void SetLandmarkRegistrationMode(int arg);
+  void SetLandmarkRegistrationModeToRigidBody();
+  void SetLandmarkRegistrationModeToAffine();
+  void SetLandmarkRegistrationModeToSimilarity();
+
 protected:
   vtkSlicerCalibrationAlgoLogic();
   virtual ~vtkSlicerCalibrationAlgoLogic();

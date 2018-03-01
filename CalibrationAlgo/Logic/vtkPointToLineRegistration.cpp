@@ -195,12 +195,12 @@ vtkMatrix4x4* vtkPointToLineRegistration::Compute()
   cv::Mat R = cv::Mat::eye(3, 3, CV_64F);
   cv::Mat t = cv::Mat::zeros(3, 1, CV_64F);
 
-  vtkNew<vtkLandmarkTransform> landmarkRegistration;
-  landmarkRegistration->SetModeToRigidBody();
+  vtkSmartPointer<vtkLandmarkTransform> landmarkRegistration = vtkSmartPointer<vtkLandmarkTransform>::New();
+  landmarkRegistration->SetMode(this->LandmarkRegistrationMode);
 
-  vtkNew<vtkPoints> source;
-  vtkNew<vtkPoints> target;
-  vtkNew<vtkMatrix4x4> result;
+  vtkSmartPointer<vtkPoints> source = vtkSmartPointer<vtkPoints>::New();
+  vtkSmartPointer<vtkPoints> target = vtkSmartPointer<vtkPoints>::New();
+  vtkSmartPointer<vtkMatrix4x4> result = vtkSmartPointer<vtkMatrix4x4>::New();
   while (outError > this->Tolerance)
   {
     source->Reset();
@@ -213,7 +213,7 @@ vtkMatrix4x4* vtkPointToLineRegistration::Compute()
     landmarkRegistration->SetSourceLandmarks(source);
     landmarkRegistration->SetTargetLandmarks(target);
     landmarkRegistration->Update();
-    landmarkRegistration->GetMatrix(result.GetPointer());
+    landmarkRegistration->GetMatrix(result);
     Matrix4x4ToOpenCV(result, R, t);
 
     tempM = (R * X) + (t * e) - O;
@@ -252,4 +252,28 @@ vtkMatrix4x4* vtkPointToLineRegistration::Compute()
 double vtkPointToLineRegistration::GetError() const
 {
   return this->Error;
+}
+
+//----------------------------------------------------------------------------
+void vtkPointToLineRegistration::SetLandmarkRegistrationMode(int arg)
+{
+  this->LandmarkRegistrationMode = arg;
+}
+
+//----------------------------------------------------------------------------
+void vtkPointToLineRegistration::SetLandmarkRegistrationModeToRigidBody()
+{
+  this->LandmarkRegistrationMode = VTK_LANDMARK_RIGIDBODY;
+}
+
+//----------------------------------------------------------------------------
+void vtkPointToLineRegistration::SetLandmarkRegistrationModeToAffine()
+{
+  this->LandmarkRegistrationMode = VTK_LANDMARK_AFFINE;
+}
+
+//----------------------------------------------------------------------------
+void vtkPointToLineRegistration::SetLandmarkRegistrationModeToSimilarity()
+{
+  this->LandmarkRegistrationMode = VTK_LANDMARK_SIMILARITY;
 }
