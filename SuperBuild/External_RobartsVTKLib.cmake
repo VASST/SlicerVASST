@@ -17,7 +17,12 @@ endif()
 
 if(Qt5_DIR)
   list(APPEND ADDITIONAL_CMAKE_ARGS
+    -DRobartsVTK_USE_QT:BOOL=ON
     -DQt5_DIR:PATH=${Qt5_DIR}
+    )
+else()
+  list(APPEND ADDITIONAL_CMAKE_ARGS
+    -DRobartsVTK_USE_QT:BOOL=OFF
     )
 endif()
 
@@ -62,7 +67,6 @@ if(NOT DEFINED ${proj}_DIR AND NOT ${CMAKE_PROJECT_NAME}_USE_SYSTEM_${proj})
       -DCMAKE_C_FLAGS:STRING=${ep_common_c_flags}
       -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
       -DBUILD_TESTING:BOOL=OFF
-      -DRobartsVTK_USE_QT:BOOL=ON
       -DRobartsVTK_USE_ITK:BOOL=ON
       -DVTK_DIR:PATH=${VTK_DIR}
       -DITK_DIR:PATH=${ITK_DIR}
