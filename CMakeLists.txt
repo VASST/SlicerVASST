@@ -38,7 +38,6 @@ endif()
 
 #-----------------------------------------------------------------------------
 # Extension modules
-add_subdirectory(LapUSVisualization)
 add_subdirectory(NeoGuidance)
 add_subdirectory(CalibrationAlgo)
 ## NEXT_MODULE
