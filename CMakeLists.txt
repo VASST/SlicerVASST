@@ -1,19 +1,19 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.5)
 
 project(SlicerVASST)
 
 #-----------------------------------------------------------------------------
 # Extension meta-information
-set(EXTENSION_HOMEPAGE "http://slicer.org/slicerWiki/index.php/Documentation/Nightly/Extensions/SlicerVASST")
+set(EXTENSION_HOMEPAGE "https://github.com/VASST/SlicerVASST")
 set(EXTENSION_CATEGORY "Registration;Segmentation;Visualization")
 set(EXTENSION_CONTRIBUTORS "Adam Rankin (Robarts Research Institute), Golafsoun Ameri (Robarts Research Institute), Elvis Chen (Robarts Research Institute)")
 set(EXTENSION_DESCRIPTION "This extension contains a number of modules developed by the VASST laboratory at the Robarts Research Institute. It provides access to RobartsVTK, a library for visualization and image processing.")
 set(EXTENSION_ICONURL "https://raw.githubusercontent.com/VASST/SlicerVASST/master/docs/images/SlicerVASST_logo.png")
-set(EXTENSION_SCREENSHOTURLS "http://www.example.com/Slicer/Extensions/SlicerVASST/Screenshots/1.png")
-set(EXTENSION_DEPENDS "SlicerOpenCV SlicerIGT")
+set(EXTENSION_SCREENSHOTURLS "https://raw.githubusercontent.com/VASST/SlicerVASST/master/docs/images/screenshot.png")
+set(EXTENSION_DEPENDS "SlicerOpenCV;SlicerIGT")
 set(EXTENSION_BUILD_SUBDIRECTORY inner-build)
 
-set(SUPERBUILD_TOPLEVEL_PROJECT SlicerVASST)
+set(SUPERBUILD_TOPLEVEL_PROJECT inner)
 
 #-----------------------------------------------------------------------------
 # Extension dependencies
@@ -23,6 +23,9 @@ mark_as_superbuild(Slicer_DIR)
 
 find_package(Git REQUIRED)
 mark_as_superbuild(GIT_EXECUTABLE)
+
+find_package(SlicerIGT REQUIRED)
+mark_as_superbuild(SlicerIGT_DIR)
 
 find_package(SlicerOpenCV REQUIRED NO_MODULE)
 mark_as_superbuild(SlicerOpenCV_DIR)
