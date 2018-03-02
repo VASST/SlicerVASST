@@ -11,10 +11,6 @@ set(ep_common_cxx_flags "${CMAKE_CXX_FLAGS_INIT} ${ADDITIONAL_CXX_FLAGS}")
 
 include(ExternalProject)
 
-foreach(dep ${EXTENSION_DEPENDS})
-  mark_as_superbuild(${dep}_DIR)
-endforeach()
-
 set(proj ${SUPERBUILD_TOPLEVEL_PROJECT})
 set(${proj}_DEPENDS "RobartsVTKLib") # Add dependent projects (will look for External_XYZ.cmake in SuperBuild directory)
 

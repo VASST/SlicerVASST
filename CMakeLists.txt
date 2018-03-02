@@ -24,6 +24,9 @@ mark_as_superbuild(Slicer_DIR)
 find_package(Git REQUIRED)
 mark_as_superbuild(GIT_EXECUTABLE)
 
+find_package(SlicerIGT REQUIRED)
+mark_as_superbuild(SlicerIGT_DIR)
+
 find_package(SlicerOpenCV REQUIRED NO_MODULE)
 mark_as_superbuild(SlicerOpenCV_DIR)
 
