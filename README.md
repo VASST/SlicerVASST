@@ -17,5 +17,5 @@ Available modules
 License
 -------
 
-It is covered by the MIT License.
+See [LICENSE](LICENSE).
 
