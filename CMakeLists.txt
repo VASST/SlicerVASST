@@ -43,6 +43,7 @@ endif()
 # Extension modules
 add_subdirectory(NeoGuidance)
 add_subdirectory(CalibrationAlgo)
+add_subdirectory(GuidedUSCal)
 ## NEXT_MODULE
 
 #-----------------------------------------------------------------------------
