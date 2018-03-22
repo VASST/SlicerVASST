@@ -22,7 +22,7 @@ class GuidedUSCal(ScriptedLoadableModule):
     self.parent.contributors=["Leah Groves"]
     # discriptor string telling what the module does 
     self.parent.helpText="""
-This is a scripted loadable module that performs Ultrsound Calibration
+This is a scripted loadable module that performs ultrasound calibration.
 """
     self.parent.helpText = self.getDefaultModuleDocumentationLink()
   
