@@ -88,7 +88,7 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
     self.inputPortLineEdit.toolTip = "Put the Port of your ultrasound device here"
     self.usLayout.addRow("Server Port:", self.inputPortLineEdit)
 
-      #This is a push button 
+    #This is a push button 
     self.connectButton = qt.QPushButton()
     #This button says connect 
     self.connectButton.text = "Connect"
@@ -119,8 +119,8 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
     self.fiducialContainer = ctk.ctkCollapsibleButton()
     self.fiducialContainer.text = "Registration"
     self.fiducialLayout = qt.QFormLayout(self.fiducialContainer)
-	
-	 #add combo box for linear transform node 
+
+    #add combo box for linear transform node 
     self.TransformSelector = slicer.qMRMLNodeComboBox()
     self.TransformSelector.nodeTypes = ["vtkMRMLLinearTransformNode"]
     self.TransformSelector.selectNodeUponCreation = True
@@ -144,8 +144,8 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
     # self.probeTransformSelector.setMRMLScene( slicer.mrmlScene )
     # self.probeTransformSelector.setToolTip( "Pick the transform representing the probe line." )
     # self.fiducialLayout.addRow("Probe transform: ", self.probeTransformSelector)
-	
-	   #This is the exact same as the code block below but it freezes the US to capture a screenshot 
+
+    #This is the exact same as the code block below but it freezes the US to capture a screenshot 
     self.freezeButton = qt.QPushButton()
     self.freezeButton.text = "Freeze"
     self.freezeButton.toolTip = "Freeze the ultrasound image for fiducial placement"
@@ -245,17 +245,15 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
      # self.freezeButton.text = "Unfreeze"
       slicer.modules.markups.logic().StartPlaceMode(0)
       slicer.app.layoutManager().sliceWidget('Red').setCursor(qt.QCursor(2))
-     
     else:
       # This starts the connection
       self.connectorNode.Start()
       self.connectButton.text = "Disconnect"
       self.freezeButton.text = "Freeze"
-   
-	 
+
     if self.fiducialNode is not None:
-	    self.fiducialNode.RemoveAllMarkups()
-	  
+      self.fiducialNode.RemoveAllMarkups()
+
   def onGuidedButtonClicked(self):
     if self.guidedButton.isChecked():
       slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpRedSliceView)
@@ -285,11 +283,10 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
     #startPlaceMode(0) means only one markup gets place
     slicer.modules.markups.logic().StartPlaceMode(0)
     slicer.app.layoutManager().sliceWidget('Red').setCursor(qt.QCursor(2))
-	
-	 
+
     if self.fiducialNode is not None:
-	    self.fiducialNode.RemoveAllMarkups()
-	  
+      self.fiducialNode.RemoveAllMarkups()
+
   #this runs when that fiducial node is added 
   @vtk.calldata_type(vtk.VTK_OBJECT)
   def onNodeAdded(self, caller, event, callData):
@@ -300,8 +297,7 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
         # remove the observer 
         self.fiducialNode.RemoveAllMarkups()
         self.fiducialNode.RemoveObserver(self.markupAddedObserverTag)
-		
-        
+
       # set the variable to none 
       self.fiducialNode = None
       #ask adam 
@@ -353,7 +349,7 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
       self.isVisualizing = True
       slicer.app.layoutManager().sliceWidget('Red').sliceLogic().GetSliceNode().SetSliceVisible(True)
       slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUp3DView)
-	
+
     if self.TransformSelector.currentNode() is not None:
       self.visualizeButton.text = 'Show Slices'
     self.connectorNode.InvokeEvent(slicer.vtkMRMLIGTLConnectorNode.DeviceModifiedEvent) 
@@ -398,29 +394,29 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
     print('origin' + str(origin))
     print('dir' + str(dir))
     print('centroid' + str(centroid))
-	
-    if self.numFid>=1:    
+
+    if self.numFid>=1:
       self.ImageToProbe = self.logic.CalculateRegistration()
       print('Calibration Transformation:') 
       #print('[' + str(self.ImageToProbe.GetElement(0,0)) + ',' + str(self.ImageToProbe.GetElement(0,1)) + ',' + str(self.ImageToProbe.GetElement(0,2)) + ';' + str(self.ImageToProbe.GetElement(1,0)) + ',' str(self.ImageToProbe.GetElement(1,1)) + ',' str(self.ImageToProbe.GetElement(1,2)) + ';' + str(self.ImageToProbe.GetElement(2,0)) + ',' +str(self.ImageToProbe.GetElement(2,1)) + ',' + str(self.ImageToProbe.GetElement(2,2)) + ']' + ';')
       print(self.ImageToProbe)
       print('Tip to probe:')
-      print(tipToProbeTransform) 
-      print('Error: ' + str(self.logic.GetError()))	
+      print(tipToProbeTransform)
+      print('Error: ' + str(self.logic.GetError()))
       self.connectorNode.Start()
-	  
+
     if self.numFid>=15: 
       self.outputRegistrationTransformNode.SetMatrixTransformToParent(self.ImageToProbe)
-	
+
   def Reset(self):
-    slicer.modules.guideduscalalgo.logic().Reset()
-	
+    self.logic.Reset()
+
 
 class GuidedUSCalLogic(ScriptedLoadableModuleLogic):
   def __init__(self):
-    self.regLogic = slicer.modules.guideduscalalgo.logic()
+    self.regLogic = slicer.modules.calibrationalgo.logic()
     self.regLogic.SetLandmarkRegistrationToSimilarity()	
-	
+
   def AddPointAndLine(self, point, lineOrigin, lineDirection):
     self.regLogic.AddPointAndLine(point, lineOrigin, lineDirection)
 
@@ -432,3 +428,6 @@ class GuidedUSCalLogic(ScriptedLoadableModuleLogic):
 
   def GetError(self):
     return self.regLogic.GetError()
+
+  def Reset(self):
+    self.regLogic.Reset()
