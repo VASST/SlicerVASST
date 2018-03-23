@@ -425,7 +425,7 @@ class NeoGuidanceLogic(ScriptedLoadableModuleLogic):
   def __init__(self, parent=None):
     ScriptedLoadableModuleLogic.__init__(self, parent)
 
-    self.resliceLogic = slicer.modulelogic.vtkSlicerVolumeResliceDriverLogic()
+    self.resliceLogic = slicer.modules.volumereslicedriver.logic()
 
     # Find or create the 5DOFCalculatedTo6DOF transform
     self.FiveCalculatedToSixTransform = slicer.util.getNode("FiveCalculatedToSixTransform")
