@@ -7,34 +7,28 @@ import re
 
 # This is the basis of your module and will load the basic module GUI 
 class GuidedUSCal(ScriptedLoadableModule):
-  # comment string showing where to obtain this 
   """Uses ScriptedLoadableModuleWidget base class, available at:
   https://github.com/Slicer/Slicer/blob/master/Base/Python/slicer/ScriptedLoadableModule.py
   """ 
   #define some things about your module here 
   def __init__(self, parent):
     ScriptedLoadableModule.__init__(self, parent)
-    #Module title 
     self.parent.title= "US Calibration Module"
-    #where in the module list it will appear 
     self.parent.categories=["IGT"]
-    #who wrote it 
+    self.parent.dependencies = ["VolumeResliceDriver", "CreateModels", "CalibrationAlgo"]
     self.parent.contributors=["Leah Groves"]
-    # discriptor string telling what the module does 
-    self.parent.helpText="""
-This is a scripted loadable module that performs ultrasound calibration.
-"""
+    self.parent.helpText="""This is a scripted loadable module that performs ultrasound calibration."""
     self.parent.helpText = self.getDefaultModuleDocumentationLink()
   
-#this contains the widget (GUI) portion of the code         
+# This class contains the widget (GUI) portion of the code
 class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
   """Uses ScriptedLoadableModuleWidget base class, available at:
   https://github.com/Slicer/Slicer/blob/master/Base/Python/slicer/ScriptedLoadableModule.py
   """
   def __init__(self, parent=None):
-    # set variables here
     ScriptedLoadableModuleWidget.__init__(self, parent)
-    #sets important variable equal to None 
+
+    # Set member variables equal to None
     self.fiducialNode = None
     self.connectorNode = None
     self.sceneObserverTag = None
@@ -58,7 +52,7 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
     slicer.mymod = self
      #This sets the view being used to the red view only 
     slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpRedSliceView)
-    l=slicer.modules.createmodels.logic()
+    l = slicer.modules.createmodels.logic()
     self.needle = l.CreateNeedle(180, 0.3, 0, False)
 
     #This code block creates a collapsible button 
@@ -326,17 +320,22 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
     self.probeNode = self.probeTransformSelector.currentNode()
     self.outputRegistrationTransformNode.SetAndObserveTransformNodeID(self.probeTransformSelector.currentNode().GetID())
 
-  # removes the observer    
+  # removes the observer
   def cleanup(self):
     if self.sceneObserverTag is not None:
       slicer.mrmlScene.RemoveObserver(self.sceneObserverTag)
       self.sceneObserverTag = None
 
-    self.connectButton.disconnect('clicked(bool)', self.onConnectButtonClicked)
-    self.freezeButton.disconnect('clicked(bool)', self.onConnectButtonClicked)
-    self.inputIPLineEdit.disconnect('textChanged(QString)', self.onInputChanged)
-    self.inputPortLineEdit.disconnect('textChanged(QString)', self.onInputChanged)
-    self.imageSelector.disconnect('currentNodeChanged(vtkMRMLNode*)', self.onImageChanged)
+    if self.connectButton is not None:
+      self.connectButton.disconnect('clicked(bool)', self.onConnectButtonClicked)
+    if self.freezeButton is not None:
+      self.freezeButton.disconnect('clicked(bool)', self.onConnectButtonClicked)
+    if self.inputIPLineEdit is not None:
+      self.inputIPLineEdit.disconnect('textChanged(QString)', self.onInputChanged)
+    if self.inputPortLineEdit is not None:
+      self.inputPortLineEdit.disconnect('textChanged(QString)', self.onInputChanged)
+    if self.imageSelector is not None:
+      self.imageSelector.disconnect('currentNodeChanged(vtkMRMLNode*)', self.onImageChanged)
 
   def onVisualizeButtonClicked(self):
     if self.fiducialNode is not None:
@@ -415,7 +414,7 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
 class GuidedUSCalLogic(ScriptedLoadableModuleLogic):
   def __init__(self):
     self.regLogic = slicer.modules.calibrationalgo.logic()
-    self.regLogic.SetLandmarkRegistrationToSimilarity()	
+    self.regLogic.SetLandmarkRegistrationModeToSimilarity()
 
   def AddPointAndLine(self, point, lineOrigin, lineDirection):
     self.regLogic.AddPointAndLine(point, lineOrigin, lineDirection)
