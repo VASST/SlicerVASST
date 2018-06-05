@@ -6,6 +6,7 @@ import logging
 import re
 import SimpleITK as sitk
 import numpy as np 
+import sitkUtils 
 
 # This is the basis of your module and will load the basic module GUI 
 class GuidedUSCal(ScriptedLoadableModule):
@@ -60,7 +61,7 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
      #This sets the view being used to the red view only 
     slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpRedSliceView)
     l=slicer.modules.createmodels.logic()
-    self.needle = l.CreateNeedle(150, 1.03, 0, False)
+    self.needle = l.CreateNeedle(150, 0.4, 0, False)
     
 	
     #This code block creates a collapsible button 
@@ -114,7 +115,7 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
     self.usLayout.addRow("US Volume: ", self.imageSelector)
 
     self.manualButton = qt.QCheckBox()
-    self.manualButton.text = "Select to perform automatic segmentation"
+    self.manualButton.text = "Select to perform manual segmentation"
     self.manualButton.toolTip = "This allows the user to select if they want to use the guidance"
     self.usLayout.addRow(self.manualButton)
    
@@ -253,9 +254,11 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
       print('Error: ' + str(self.logic.GetError()))	
       self.connectorNode.Start()
 	  
-    if self.numFid>=15: 
+    if self.numFid>=8:
       self.outputRegistrationTransformNode.SetMatrixTransformToParent(self.ImageToProbe)
       self.needle.SetAndObserveTransformNodeID(self.TransformSelector.currentNode().GetID()) 
+      slicer.app.layoutManager().sliceWidget("Red").sliceController().fitSliceToBackground()
+
 
   
   def onConnectButtonClicked(self):
@@ -278,8 +281,21 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
         self.connectorNode.Stop()
         self.connectButton.text = "Connect"
         self.freezeButton.text = "Unfreeze" 
-        I = slicer.util.array("Image_Probe")
-        centroid = self.centroidFinder(I)
+        otsu_filter = sitk.OtsuThresholdImageFilter()
+        inside_value = 0
+        outside_value = 1
+        otsu_filter.SetOutsideValue(outside_value)
+        otsu_filter.SetInsideValue(inside_value)
+        binary_filt = sitk.BinaryThresholdImageFilter()
+        binary_filt.SetInsideValue(inside_value)
+        binary_filt.SetOutsideValue(outside_value)
+        binary_filt.SetUpperThreshold(255)
+        conncomp_filt = sitk.BinaryImageToLabelMapFilter()
+        conncomp_filt.FullyConnectedOn()
+        conncomp_filt.SetInputForegroundValue(0)
+        conncomp_filt.SetOutputBackgroundValue(0)
+		
+        centroid = self.centroidFinder(otsu_filter, binary_filt, conncomp_filt)
         self.numFid = self.numFid + 1 
         self.numFidLabel.setText(str(self.numFid)) 
 	    #Collect the line in tracker space
@@ -288,9 +304,8 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
         origin = [tipToProbeTransform.GetElement(0, 3), tipToProbeTransform.GetElement(1,3), tipToProbeTransform.GetElement(2,3)]
         dir = [tipToProbeTransform.GetElement(0, 2), tipToProbeTransform.GetElement(1,2), tipToProbeTransform.GetElement(2,2)]
         self.logic.AddPointAndLine([centroid[0],centroid[1],0], origin, dir)
-        slicer.modules.markups.logic().StartPlaceMode([centroid[0], centroid[1]])
-        print('origin' + str(origin))
-        print('dir' + str(dir))
+        # print('origin' + str(origin))
+        # print('dir' + str(dir))
         print('centroid' + str(centroid))
 	  
         self.ImageToProbe = self.logic.CalculateRegistration()
@@ -302,8 +317,7 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
         self.connectorNode.Start()
         self.outputRegistrationTransformNode.SetMatrixTransformToParent(self.ImageToProbe)
         self.needle.SetAndObserveTransformNodeID(self.TransformSelector.currentNode().GetID()) 
-        slicer.app.layoutManager().sliceWidget("Red").sliceController().fitSliceToBackground()
-        self.connectorNode == 1
+        slicer.app.layoutManager().sliceWidget("Red").sliceController().fitSliceToBackground()     
       else:
       # This starts the connection
         self.connectorNode.Start()
@@ -325,22 +339,18 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
       # Csonnected, disconnect
         self.connectorNode.Stop()
         self.connectButton.text = "Connect"
-     # self.freezeButton.text = "Unfreeze"
+        self.freezeButton.text = "Unfreeze"
         slicer.modules.markups.logic().StartPlaceMode(0)
         slicer.app.layoutManager().sliceWidget('Red').setCursor(qt.QCursor(2))
-     
-      else:
+      if self.connectorNode.GetState ==1:
       # This starts the connection
-        self.connectorNode.Start()
         self.connectButton.text = "Disconnect"
         self.freezeButton.text = "Freeze"
-   
+        self.connectorNode.Start()
+           
       if self.fiducialNode is not None:
 	    self.fiducialNode.RemoveAllMarkups()
   	  
-  
-  def onFreezeButtonClicked(self):
-    print("worked!")
 
   def onImageChanged(self, index):
       # def onImageChanged(self, newImageNode):
@@ -401,114 +411,96 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
       self.isVisualizing = True
       slicer.app.layoutManager().sliceWidget('Red').sliceLogic().GetSliceNode().SetSliceVisible(True)
       slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUp3DView)
-	
-    if self.TransformSelector.currentNode() is not None:
       self.visualizeButton.text = 'Show Slices'
-    self.connectorNode.InvokeEvent(slicer.vtkMRMLIGTLConnectorNode.DeviceModifiedEvent) 
+	  
+    if self.TransformSelector.currentNode() is not None:
+      self.connectorNode.InvokeEvent(slicer.vtkMRMLIGTLConnectorNode.DeviceModifiedEvent) 
 
   def onResetButtonClicked(self):
     if self.fiducialNode is not None:
 	  self.fiducialNode.RemoveAllMarkups()
-
-  def fitUltrasoundImageToView(self):
-    redWidget = slicer.app.layoutManager().sliceWidget('Red')
-    redWidget.sliceController().fitSliceToBackground()
+    Reset()
 	
   def Reset(self):
     slicer.modules.guideduscalalgo.logic().Reset()
 	
-  def centroidFinder(self, I_array):
-    I = np.squeeze(I_array) 
-	
-    I_out = sitk.GetImageFromArray(I)
-
-    n = np.histogram(I, bins=256, range=[0,255] )
-    otsu_filter = sitk.OtsuThresholdImageFilter()
-    inside_value = 1
-    outside_value = 0
-    otsu_filter.SetOutsideValue(outside_value)
-    otsu_filter.SetInsideValue(inside_value)
-    otsu_filter.Execute(I_out)
-    T = otsu_filter.GetThreshold()
-
-    Tup = ((T/256) + 0.6*(T/256))*256   
-
-    binary_filt = sitk.BinaryThresholdImageFilter()
+  def centroidFinder(self, otsu_filter, binary_filt, conncomp_filt):
+    I = sitk.Cast(sitkUtils.PullVolumeFromSlicer("Image_Probe"), sitk.sitkUInt8)
+    I_otsu = otsu_filter.Execute(I)
+    Tup = otsu_filter.GetThreshold() + (otsu_filter.GetThreshold()*0.6)
     binary_filt.SetLowerThreshold(Tup)
-    binary_filt.SetUpperThreshold(255)
-    binary_filt.SetInsideValue(inside_value)
-    binary_filt.SetOutsideValue(outside_value)
+    I_bw_im = sitk.Cast(binary_filt.Execute(I), sitk.sitkUInt8)
+    I_CC = sitk.Cast(conncomp_filt.Execute(I_bw_im), sitk.sitkUInt8)
+    numComps = conncomp_filt.GetNumberOfThreads()
+    I_CC_array = np.squeeze(sitk.GetArrayFromImage(I_CC)) 
+    [r,c] = I_CC_array.shape
+    count = 1
+    sizeconn = np.zeros(numComps)
+    for i in range(1, numComps):
+      [X, Y] = np.where(I_CC_array == i)
+      sizeconn[count] = len(X)
+      count = count+1
+	  
+    needle_loc = np.argmax(sizeconn)
+	
 
-    I_bw_im = binary_filt.Execute(I_out)
+    I_CC_reshape = np.reshape(I_CC_array, (1,r*c))
+    needle_find = np.where(I_CC_reshape == needle_loc)
+    I_CC_out = np.zeros([1,r*c]) 
+    I_CC_out[0, needle_find[1][:]] = 1 
+    I_CC_rot = np.rot90(np.rot90(np.reshape(I_CC_out, (r,c))))
 
-    I_bw_im= sitk.Cast(I_bw_im, sitk.sitkUInt8)
-    conncomp_filt = sitk.BinaryImageToLabelMapFilter()
-    conncomp_filt.FullyConnectedOn()
-    conncomp_filt.SetInputForegroundValue(1)
-    conncomp_filt.SetOutputBackgroundValue(0)
-    I_CC = conncomp_filt.Execute(I_bw_im)
-    I_CC = sitk.Cast(I_CC, sitk.sitkUInt8)
-
-    I_CC_array = sitk.GetArrayFromImage(I_CC)
-    [r,c] = I_CC_array.shape 
-
-    I_CC_out = np.zeros([r,c])
-
-    for i in range(0, r):
-        for j in range(0,c): 
-            if I_CC_array[i,j] == 1: 
-                I_CC_out[i,j] = 1
-
-    I_CC_out_im = sitk.GetImageFromArray(I_CC_out)
-
-
+    I_CC_out_im = sitk.Cast(sitk.GetImageFromArray(I_CC_rot), sitk.sitkFloat32)
     Canny_edge = sitk.CannyEdgeDetectionImageFilter()
-    sitk.Cast(I_CC_out_im, sitk.sitkFloat32)
     I_edge=sitk.Cast(Canny_edge.Execute(I_CC_out_im), sitk.sitkUInt8)
 
     dilate_filt = sitk.BinaryDilateImageFilter()
     dilate_filt.SetKernelType(sitk.sitkBox)
     dilate_filt.SetKernelRadius([16,8])
     I_dil=dilate_filt.Execute(I_edge)
-    I_dil_array = sitk.GetArrayFromImage(I_dil)
-
-
+    I_dil_array = (np.rot90(np.rot90(sitk.GetArrayFromImage(I_dil))))
+	
+    # [Xval, Yval] = np.where(I_dil_array ==1)
+	
+    # I_dil_new = I_dil_array[Xval[0]-20:Xval[-1]+20, Yval[0]-20:Yval[0]+20]
+	
     [Idx, Idy] = np.where(I_dil_array ==1)
-    I_emp = np.zeros([r, c])
-    Idc1 = np.zeros(len(Idy))
-    Idr1 = np.zeros(len(Idx))
+    
 
-    Idc2 = np.zeros(len(Idy))
-    Idr2 = np.zeros(len(Idx))
+    Idc1 = np.zeros(len(Idy))
+    Idc2 = Idc1
+    Idr1 = np.zeros(len(Idx))
+    Idr2 = Idr1
+	
     counter = 0 
     for i in range(0, c):
-        for j in range(0,r): 
-            if I_dil_array[j,i] == 1:
-                Idc1[counter] = i 
-                Idr1[counter] = j
-                counter= counter +1
-    counter2 = 0             
+      for j in range(0,r): 
+        if I_dil_array[j,i] == 1:
+          Idc1[counter] = i 
+          Idr1[counter] = j
+          counter= counter +1
+    counter2 = 0  
+	
     for i in range(0, r):
-        for j in range(0,c): 
-            if I_dil_array[i,j] == 1:
-                Idc2[counter2]= j
-                Idr2[counter2]= i 
-                counter2= counter2 +1
-            
+      for j in range(0,c): 
+        if I_dil_array[i,j] == 1:
+          Idc2[counter2]= j
+          Idr2[counter2]= i 
+          counter2= counter2 +1
+				
     V1len = np.where(Idc1 == Idc1[0])
     V2len = np.where(Idc1 == Idc1[-1])
     Hlen = np.where(Idr2 == Idr2[-1])
- 
     vert1 = [Idr1[0:len(V1len[0])],Idc1[0:len(V1len[0])] ]
     vert2 = [Idr1[-len(V2len[0]):],Idc1[-len(V2len[0]):]]
     Hor1= [Idr2[-len(Hlen[0]):],Idc2[-len(Hlen[0]):]]
-
-    Y_avg = int(round((vert1[0][0] + 3* vert1[0][-1] + vert2[0][0] + 3*vert2[0][-1])/8))
-    X_avg = int(round((Hor1[1][0] + Hor1[1][-1] +vert1[1][0] +vert2[1][0])/4))
+     
+    Y_avg = round((2*vert1[0][0] + vert1[0][-1] + 2*vert2[0][0] + vert2[0][-1])/6)
+    X_avg = round((Hor1[1][0] + Hor1[1][-1] +vert1[1][-1] +vert2[1][-1])/4)
+    print(vert1[0][0], vert1[0][-1], vert2[0][0], vert2[0][-1])
+    print(Hor1[1][0], Hor1[1][-1], vert2[1][0], vert1[1][0])
     centroid = [X_avg, Y_avg]
     return centroid 
-
-
 
 class GuidedUSCalLogic(ScriptedLoadableModuleLogic):
   def __init__(self):
