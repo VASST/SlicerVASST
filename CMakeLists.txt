@@ -10,7 +10,7 @@ set(EXTENSION_CONTRIBUTORS "Adam Rankin (Robarts Research Institute), Golafsoun 
 set(EXTENSION_DESCRIPTION "This extension contains a number of modules developed by the VASST laboratory at the Robarts Research Institute. It provides access to RobartsVTK, a library for visualization and image processing.")
 set(EXTENSION_ICONURL "https://raw.githubusercontent.com/VASST/SlicerVASST/master/docs/images/SlicerVASST_logo.png")
 set(EXTENSION_SCREENSHOTURLS "https://raw.githubusercontent.com/VASST/SlicerVASST/master/docs/images/screenshot.png")
-set(EXTENSION_DEPENDS "SlicerIGT;VASSTRegistrationAlgo")
+set(EXTENSION_DEPENDS "SlicerIGT;VASSTRegistration")
 set(EXTENSION_BUILD_SUBDIRECTORY inner-build)
 
 set(SUPERBUILD_TOPLEVEL_PROJECT inner)
@@ -27,8 +27,8 @@ mark_as_superbuild(GIT_EXECUTABLE)
 find_package(SlicerIGT REQUIRED)
 mark_as_superbuild(SlicerIGT_DIR)
 
-find_package(VASSTRegistrationAlgo REQUIRED)
-mark_as_superbuild(VASSTRegistrationAlgo_DIR)
+find_package(VASSTRegistration REQUIRED)
+mark_as_superbuild(VASSTRegistration_DIR)
 
 #-----------------------------------------------------------------------------
 # SuperBuild setup
