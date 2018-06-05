@@ -413,7 +413,7 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
 
 class GuidedUSCalLogic(ScriptedLoadableModuleLogic):
   def __init__(self):
-    self.regLogic = slicer.modules.calibrationalgo.logic()
+    self.regLogic = slicer.modules.pointtolineregistration.logic()
     self.regLogic.SetLandmarkRegistrationModeToSimilarity()
 
   def AddPointAndLine(self, point, lineOrigin, lineDirection):
