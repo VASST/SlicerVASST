@@ -253,13 +253,13 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
       print(tipToProbeTransform) 
       print('Error: ' + str(self.logic.GetError()))	
       self.connectorNode.Start()
+      self.connectButton.text = "Disconnect"
+      self.freezeButton.text = "Freeze"
 	  
     if self.numFid>=8:
       self.outputRegistrationTransformNode.SetMatrixTransformToParent(self.ImageToProbe)
       self.needle.SetAndObserveTransformNodeID(self.TransformSelector.currentNode().GetID()) 
       slicer.app.layoutManager().sliceWidget("Red").sliceController().fitSliceToBackground()
-
-
   
   def onConnectButtonClicked(self):
     #creates a connector Node
@@ -315,6 +315,8 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
         print(tipToProbeTransform) 
         print('Error: ' + str(self.logic.GetError()))	
         self.connectorNode.Start()
+        self.connectButton.text = "Disconnect"
+        self.freezeButton.text = "Freeze"
         self.outputRegistrationTransformNode.SetMatrixTransformToParent(self.ImageToProbe)
         self.needle.SetAndObserveTransformNodeID(self.TransformSelector.currentNode().GetID()) 
         slicer.app.layoutManager().sliceWidget("Red").sliceController().fitSliceToBackground()     
