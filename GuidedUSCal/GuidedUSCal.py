@@ -47,12 +47,25 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
     self.inputRegistrationTransformNode = None
     self.NeedleTipToReferenceTransformNode = None
 
+    self.otsu_filter = sitk.OtsuThresholdImageFilter()
+    inside_value = 0
+    outside_value = 1
+    self.otsu_filter.SetOutsideValue(outside_value)
+    self.otsu_filter.SetInsideValue(inside_value)
+    self.binary_filt = sitk.BinaryThresholdImageFilter()
+    self.binary_filt.SetInsideValue(inside_value)
+    self.binary_filt.SetOutsideValue(outside_value)
+    self.binary_filt.SetUpperThreshold(255)
+    self.conncomp_filt = sitk.BinaryImageToLabelMapFilter()
+    self.conncomp_filt.FullyConnectedOn()
+    self.conncomp_filt.SetInputForegroundValue(0)
+    self.conncomp_filt.SetOutputBackgroundValue(0)
+
   def setup(self):
     # this is the function that implements all GUI 
     ScriptedLoadableModuleWidget.setup(self)
 
-    slicer.mymod = self
-     #This sets the view being used to the red view only 
+    # This sets the view being used to the red view only 
     slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpRedSliceView)
 
     l = slicer.modules.createmodels.logic()
@@ -136,8 +149,7 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
     self.freezeButton.text = "Freeze"
     self.freezeButton.toolTip = "Freeze the ultrasound image for fiducial placement"
     self.fiducialLayout.addRow(self.freezeButton)
-    self.KeySequence = qt.QKeySequence('f')
-    self.shortcut = qt.QShortcut(self.KeySequence, slicer.util.mainWindow())
+    self.shortcut = qt.QShortcut(qt.QKeySequence('f'), slicer.util.mainWindow())
 
     self.numFidLabel = qt.QLabel()
     self.fiducialLayout.addRow(qt.QLabel("Fiducials collected:"), self.numFidLabel)
@@ -184,49 +196,47 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
     slicer.mrmlScene.AddNode(self.outputRegistrationTransformNode)
     self.outputRegistrationTransformNode.SetName('ImageToProbe')
 
-#this runs when that fiducial node is added 
+  # This runs when that fiducial node is added 
   @vtk.calldata_type(vtk.VTK_OBJECT)
   def onNodeAdded(self, caller, event, callData):
     # if the node that is created is of type vtkMRMLMarkupsFiducialNODE 
     if type(callData) is slicer.vtkMRMLMarkupsFiducialNode:
       # if there is something in this node 
       if self.fiducialNode is not None:
-        # remove the observer 
+        # remove the observer
         self.fiducialNode.RemoveAllMarkups()
         self.fiducialNode.RemoveObserver(self.markupAddedObserverTag) 
-      # set the variable to none 
-      self.fiducialNode = None
-      #ask adam 
+
       self.fiducialNode = callData
       #sets a markupObserver to notice when a markup gets added
       self.markupAddedObserverTag = self.fiducialNode.AddObserver(slicer.vtkMRMLMarkupsNode.MarkupAddedEvent, self.onMarkupAdded)
       #this runs the function onMarkupAdded
       self.onMarkupAdded(self.fiducialNode, slicer.vtkMRMLMarkupsNode.MarkupAddedEvent)
 
-  #This gets called when the markup is added
+  # This gets called when the markup is added
   def onMarkupAdded(self, fiducialNodeCaller, event):
-    #set the location and index to zero because its needs to be initialized
+    # Set the location and index to zero because its needs to be initialized
     centroid=[0,0,0]
     self.numFid = self.numFid + 1 
-    #This checks if there is not a display node 
+    # This checks if there is not a display node 
     if self.fiducialNode.GetDisplayNode() is None:
-      #then creates one if that is the case 
+      # then creates one if that is the case 
       self.fiducialNode.CreateDefaultDisplayNodes()
-    # this sets a variable as the display node
+    # This sets a variable as the display node
     displayNode = self.fiducialNode.GetDisplayNode()
     # This sets the type to be a cross hair
     displayNode.SetGlyphType(3)
-    #This sets the size
+    # This sets the size
     displayNode.SetGlyphScale(2.5)
-    #this says that you dont want text
+    # This says that you dont want text
     displayNode.SetTextScale(0)
-    #this sets the color
+    # This sets the color
     displayNode.SetSelectedColor(0, 0, 1)
-    # this saves the location the markup is place
+    # This saves the location the markup is place
     # Collect the point in image space
-    self.fiducialNode.GetMarkupPoint(self.fiducialNode.GetNumberOfMarkups()-1,0, centroid)
+    self.fiducialNode.GetMarkupPoint(self.fiducialNode.GetNumberOfMarkups()-1, 0, centroid)
     self.numFidLabel.setText(str(self.numFid)) 
-    #Collect the line in tracker space
+    # Collect the line in tracker space
     tipToProbeTransform = vtk.vtkMatrix4x4()
     self.TransformSelector.currentNode().GetMatrixTransformToWorld(tipToProbeTransform)
     origin = [tipToProbeTransform.GetElement(0, 3), tipToProbeTransform.GetElement(1,3), tipToProbeTransform.GetElement(2,3)]
@@ -247,11 +257,11 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
       slicer.app.layoutManager().sliceWidget("Red").sliceController().fitSliceToBackground()
   
   def onConnectButtonClicked(self):
-    #creates a connector Node
+    # Creates a connector Node
     if self.manualButton.isChecked()== False:
       if self.connectorNode is None:
         self.connectorNode = slicer.vtkMRMLIGTLConnectorNode()
-      #Adds this node to the scene, not there is no need for self here as it is its own node
+      # Adds this node to the scene, not there is no need for self here as it is its own node
         slicer.mrmlScene.AddNode(self.connectorNode)
       # Configures the connector
         self.connectorNode.SetTypeClient(self.inputIPLineEdit.text, int(self.inputPortLineEdit.text))
@@ -261,26 +271,13 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
           self.resliceLogic.SetDriverForSlice(self.imageSelector.currentNode().GetID(), slicer.mrmlScene.GetNodeByID('vtkMRMLSliceNodeRed'))
           self.resliceLogic.SetModeForSlice(self.resliceLogic.MODE_TRANSVERSE, slicer.mrmlScene.GetNodeByID('vtkMRMLSliceNodeRed'))
           slicer.app.layoutManager().sliceWidget("Red").sliceController().fitSliceToBackground()
-      if self.connectorNode.GetState() == 2:
-        # Connected, disconnect
+      if self.connectorNode.GetState() == slicer.vtkMRMLIGTLConnectorNode.StateConnected:
+        # Connected
         self.connectorNode.Stop()
         self.connectButton.text = "Connect"
         self.freezeButton.text = "Unfreeze" 
-        otsu_filter = sitk.OtsuThresholdImageFilter()
-        inside_value = 0
-        outside_value = 1
-        otsu_filter.SetOutsideValue(outside_value)
-        otsu_filter.SetInsideValue(inside_value)
-        binary_filt = sitk.BinaryThresholdImageFilter()
-        binary_filt.SetInsideValue(inside_value)
-        binary_filt.SetOutsideValue(outside_value)
-        binary_filt.SetUpperThreshold(255)
-        conncomp_filt = sitk.BinaryImageToLabelMapFilter()
-        conncomp_filt.FullyConnectedOn()
-        conncomp_filt.SetInputForegroundValue(0)
-        conncomp_filt.SetOutputBackgroundValue(0)
 
-        centroid = self.centroidFinder(otsu_filter, binary_filt, conncomp_filt)
+        centroid = self.centroidFinder(sitk.Cast(sitkUtils.PullVolumeFromSlicer("Image_Probe"), sitk.sitkUInt8), self.otsu_filter, self.binary_filt, self.conncomp_filt)
         self.numFid = self.numFid + 1 
         self.numFidLabel.setText(str(self.numFid))
 
@@ -316,8 +313,8 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
           self.resliceLogic.SetDriverForSlice(self.imageSelector.currentNode().GetID(), slicer.mrmlScene.GetNodeByID('vtkMRMLSliceNodeRed'))
           self.resliceLogic.SetModeForSlice(self.resliceLogic.MODE_TRANSVERSE, slicer.mrmlScene.GetNodeByID('vtkMRMLSliceNodeRed'))
           slicer.app.layoutManager().sliceWidget("Red").sliceController().fitSliceToBackground()
-      if self.connectorNode.GetState() == 2:
-      # Connected, disconnect
+      if self.connectorNode.GetState() == slicer.vtkMRMLIGTLConnectorNode.StateConnected:
+      # Connected, so disconnect
         self.connectorNode.Stop()
         self.connectButton.text = "Connect"
         self.freezeButton.text = "Unfreeze"
@@ -333,10 +330,10 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
         self.fiducialNode.RemoveAllMarkups()
 
   def onImageChanged(self, index):
-    # def onImageChanged(self, newImageNode):
     if self.imageNode is not None:
       # Unparent
       self.imageNode.SetAndObserveTransformNodeID(None)
+    else:
       return()
 
     self.imageNode = self.imageSelector.currentNode()
@@ -361,6 +358,7 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
     if self.probeNode is not None:
       # Unparent
       self.probeNode.SetAndObserveTransformNodeID(None)
+    else:
       return()
 
     self.probeNode = self.probeTransformSelector.currentNode()
@@ -400,8 +398,8 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
   def Reset(self):
     slicer.modules.guideduscalalgo.logic().Reset()
 
-  def centroidFinder(self, otsu_filter, binary_filt, conncomp_filt):
-    I = sitk.Cast(sitkUtils.PullVolumeFromSlicer("Image_Probe"), sitk.sitkUInt8)
+  def centroidFinder(self, image, otsu_filter, binary_filt, conncomp_filt):
+    I = image
     I_otsu = otsu_filter.Execute(I)
     Tup = otsu_filter.GetThreshold() + (otsu_filter.GetThreshold()*0.6)
     binary_filt.SetLowerThreshold(Tup)
@@ -472,30 +470,30 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
     redWidget = slicer.app.layoutManager().sliceWidget('Red')
     redWidget.sliceController().fitSliceToBackground()
 
-  #This gets called when the markup is added
+  # This gets called when the markup is added
   def onMarkupAdded(self, fiducialNodeCaller, event):
-    #set the location and index to zero because its needs to be initialized
+    # Set the location and index to zero because its needs to be initialized
     centroid = [0,0,0]
     self.numFid = self.numFid + 1 
-    #This checks if there is not a display node 
+    # This checks if there is not a display node 
     if self.fiducialNode.GetDisplayNode() is None:
       #then creates one if that is the case 
       self.fiducialNode.CreateDefaultDisplayNodes()
-    # this sets a variable as the display node
+    # This sets a variable as the display node
     displayNode = self.fiducialNode.GetDisplayNode()
     # This sets the type to be a cross hair
     displayNode.SetGlyphType(3)
-    #This sets the size
+    # This sets the size
     displayNode.SetGlyphScale(2.5)
-    #this says that you dont want text
+    # This says that you dont want text
     displayNode.SetTextScale(0)
-    #this sets the color
+    # This sets the color
     displayNode.SetSelectedColor(0, 0, 1)
-    # this saves the location the markup is place
+    # This saves the location the markup is place
     # Collect the point in image space
     self.fiducialNode.GetMarkupPoint(self.fiducialNode.GetNumberOfMarkups()-1,0, centroid)
     self.numFidLabel.setText(str(self.numFid)) 
-    #Collect the line in tracker space
+    # Collect the line in tracker space
     tipToProbeTransform = vtk.vtkMatrix4x4()
     self.TransformSelector.currentNode().GetMatrixTransformToWorld(tipToProbeTransform)
     origin = [tipToProbeTransform.GetElement(0, 3), tipToProbeTransform.GetElement(1,3), tipToProbeTransform.GetElement(2,3)]
