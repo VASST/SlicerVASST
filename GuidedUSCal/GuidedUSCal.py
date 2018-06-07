@@ -130,15 +130,15 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
     self.TransformSelector.setMRMLScene( slicer.mrmlScene )
     self.TransformSelector.setToolTip( "Pick the transform representing the straw line." )
     self.fiducialLayout.addRow("Tip to Probe: ", self.TransformSelector)
-	
-	   #This is the exact same as the code block below but it freezes the US to capture a screenshot 
+
+    #This is the exact same as the code block below but it freezes the US to capture a screenshot 
     self.freezeButton = qt.QPushButton()
     self.freezeButton.text = "Freeze"
     self.freezeButton.toolTip = "Freeze the ultrasound image for fiducial placement"
     self.fiducialLayout.addRow(self.freezeButton)
     self.KeySequence = qt.QKeySequence('f')
     self.shortcut = qt.QShortcut(self.KeySequence, slicer.util.mainWindow())
-	
+
     self.numFidLabel = qt.QLabel()
     self.fiducialLayout.addRow(qt.QLabel("Fiducials collected:"), self.numFidLabel)
 
@@ -202,8 +202,7 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
       self.markupAddedObserverTag = self.fiducialNode.AddObserver(slicer.vtkMRMLMarkupsNode.MarkupAddedEvent, self.onMarkupAdded)
       #this runs the function onMarkupAdded
       self.onMarkupAdded(self.fiducialNode, slicer.vtkMRMLMarkupsNode.MarkupAddedEvent)
-		
-  
+
   #This gets called when the markup is added
   def onMarkupAdded(self, fiducialNodeCaller, event):
     #set the location and index to zero because its needs to be initialized
@@ -225,7 +224,7 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
     displayNode.SetSelectedColor(0, 0, 1)
     # this saves the location the markup is place
     # Collect the point in image space
-    self.fiducialNode.GetMarkupPoint(self.fiducialNode.GetNumberOfMarkups()-1,0, centroid)	
+    self.fiducialNode.GetMarkupPoint(self.fiducialNode.GetNumberOfMarkups()-1,0, centroid)
     self.numFidLabel.setText(str(self.numFid)) 
     #Collect the line in tracker space
     tipToProbeTransform = vtk.vtkMatrix4x4()
@@ -233,23 +232,16 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
     origin = [tipToProbeTransform.GetElement(0, 3), tipToProbeTransform.GetElement(1,3), tipToProbeTransform.GetElement(2,3)]
     dir = [tipToProbeTransform.GetElement(0, 2), tipToProbeTransform.GetElement(1,2), tipToProbeTransform.GetElement(2,2)]
     self.logic.AddPointAndLine([centroid[0],centroid[1],0], origin, dir)
-    print('origin' + str(origin))
-    print('dir' + str(dir))
-    print('centroid' + str(centroid))
-	
-    if self.numFid>=1:    
+
+    if self.numFid >= 1:
       self.ImageToProbe = self.logic.CalculateRegistration()
-      print('Calibration Transformation:') 
-      #print('[' + str(self.ImageToProbe.GetElement(0,0)) + ',' + str(self.ImageToProbe.GetElement(0,1)) + ',' + str(self.ImageToProbe.GetElement(0,2)) + ';' + str(self.ImageToProbe.GetElement(1,0)) + ',' str(self.ImageToProbe.GetElement(1,1)) + ',' str(self.ImageToProbe.GetElement(1,2)) + ';' + str(self.ImageToProbe.GetElement(2,0)) + ',' +str(self.ImageToProbe.GetElement(2,1)) + ',' + str(self.ImageToProbe.GetElement(2,2)) + ']' + ';')
-      print(self.ImageToProbe)
-      print('Tip to probe:')
-      print(tipToProbeTransform) 
-      print('Error: ' + str(self.logic.GetError()))	
+      # TODO : add GUI element to show results of registration
       self.connectorNode.Start()
       self.connectButton.text = "Disconnect"
       self.freezeButton.text = "Freeze"
-	  
-    if self.numFid>=8:
+
+    # TODO : why 8? should this be configurable?
+    if self.numFid >= 8:
       self.outputRegistrationTransformNode.SetMatrixTransformToParent(self.ImageToProbe)
       self.needle.SetAndObserveTransformNodeID(self.TransformSelector.currentNode().GetID()) 
       slicer.app.layoutManager().sliceWidget("Red").sliceController().fitSliceToBackground()
@@ -287,12 +279,12 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
         conncomp_filt.FullyConnectedOn()
         conncomp_filt.SetInputForegroundValue(0)
         conncomp_filt.SetOutputBackgroundValue(0)
-		
+
         centroid = self.centroidFinder(otsu_filter, binary_filt, conncomp_filt)
         self.numFid = self.numFid + 1 
         self.numFidLabel.setText(str(self.numFid))
 
-	      # Collect the line in tracker space
+        # Collect the line in tracker space
         tipToProbeTransform = vtk.vtkMatrix4x4()
         self.TransformSelector.currentNode().GetMatrixTransformToWorld(tipToProbeTransform)
         origin = [tipToProbeTransform.GetElement(0, 3), tipToProbeTransform.GetElement(1,3), tipToProbeTransform.GetElement(2,3)]
@@ -312,7 +304,7 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
         self.connectorNode.Start()
         self.connectButton.text = "Disconnect"
         self.freezeButton.text = "Freeze"
-		
+
     if self.manualButton.isChecked() == True:
       if self.connectorNode is None:
         self.connectorNode = slicer.vtkMRMLIGTLConnectorNode()
@@ -338,7 +330,7 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
         self.connectorNode.Start()
            
       if self.fiducialNode is not None:
-	      self.fiducialNode.RemoveAllMarkups()
+        self.fiducialNode.RemoveAllMarkups()
 
   def onImageChanged(self, index):
     # def onImageChanged(self, newImageNode):
@@ -407,7 +399,7 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
 
   def Reset(self):
     slicer.modules.guideduscalalgo.logic().Reset()
-	
+
   def centroidFinder(self, otsu_filter, binary_filt, conncomp_filt):
     I = sitk.Cast(sitkUtils.PullVolumeFromSlicer("Image_Probe"), sitk.sitkUInt8)
     I_otsu = otsu_filter.Execute(I)
@@ -424,7 +416,7 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
       [X, Y] = np.where(I_CC_array == i)
       sizeconn[count] = len(X)
       count = count+1
-	  
+
     needle_loc = np.argmax(sizeconn)
 
     I_CC_reshape = np.reshape(I_CC_array, (1,r*c))
@@ -441,14 +433,14 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
     dilate_filt.SetKernelType(sitk.sitkBox)
     dilate_filt.SetKernelRadius([16,8])
     I_dil = dilate_filt.Execute(I_edge)
-    I_dil_array = (np.rot90(np.rot90(sitk.GetArrayFromImage(I_dil))))	
+    I_dil_array = (np.rot90(np.rot90(sitk.GetArrayFromImage(I_dil))))
     [Idx, Idy] = np.where(I_dil_array == 1)
 
     Idc1 = np.zeros(len(Idy))
     Idc2 = Idc1
     Idr1 = np.zeros(len(Idx))
     Idr2 = Idr1
-	
+
     counter = 0 
     for i in range(0, c):
       for j in range(0,r): 
@@ -457,14 +449,14 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
           Idr1[counter] = j
           counter= counter +1
     counter2 = 0  
-	
+
     for i in range(0, r):
       for j in range(0,c): 
         if I_dil_array[i,j] == 1:
           Idc2[counter2]= j
           Idr2[counter2]= i 
           counter2= counter2 +1
-				
+
     V1len = np.where(Idc1 == Idc1[0])
     V2len = np.where(Idc1 == Idc1[-1])
     Hlen = np.where(Idr2 == Idr2[-1])
@@ -474,10 +466,7 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
      
     Y_avg = round((2*vert1[0][0] + vert1[0][-1] + 2*vert2[0][0] + vert2[0][-1])/6)
     X_avg = round((Hor1[1][0] + Hor1[1][-1] +vert1[1][-1] +vert2[1][-1])/4)
-    print(vert1[0][0], vert1[0][-1], vert2[0][0], vert2[0][-1])
-    print(Hor1[1][0], Hor1[1][-1], vert2[1][0], vert1[1][0])
-    centroid = [X_avg, Y_avg]
-    return centroid
+    return [X_avg, Y_avg]
 
   def fitUltrasoundImageToView(self):
     redWidget = slicer.app.layoutManager().sliceWidget('Red')
@@ -504,7 +493,7 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
     displayNode.SetSelectedColor(0, 0, 1)
     # this saves the location the markup is place
     # Collect the point in image space
-    self.fiducialNode.GetMarkupPoint(self.fiducialNode.GetNumberOfMarkups()-1,0, centroid)	
+    self.fiducialNode.GetMarkupPoint(self.fiducialNode.GetNumberOfMarkups()-1,0, centroid)
     self.numFidLabel.setText(str(self.numFid)) 
     #Collect the line in tracker space
     tipToProbeTransform = vtk.vtkMatrix4x4()
