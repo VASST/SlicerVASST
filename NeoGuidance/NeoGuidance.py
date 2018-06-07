@@ -15,7 +15,7 @@ class NeoGuidance(ScriptedLoadableModule):
     ScriptedLoadableModule.__init__(self, parent)
     self.parent.title = "NeoChord Guidance"
     self.parent.categories = ["IGT"]
-    self.parent.dependencies = []
+    self.parent.dependencies = ["VolumeResliceDriver"]
     self.parent.contributors = ["Adam Rankin, Jonathan McLeod (Robarts Research Institute)"]
     self.parent.helpText = """This extensions enables surgical guidance for NeoChord surgical procedures."""
     self.parent.acknowledgementText = """The authors would like to thank the support of the CIHR, the CFI, and Western University."""
@@ -425,7 +425,7 @@ class NeoGuidanceLogic(ScriptedLoadableModuleLogic):
   def __init__(self, parent=None):
     ScriptedLoadableModuleLogic.__init__(self, parent)
 
-    self.resliceLogic = slicer.modulelogic.vtkSlicerVolumeResliceDriverLogic()
+    self.resliceLogic = slicer.modules.volumereslicedriver.logic()
 
     # Find or create the 5DOFCalculatedTo6DOF transform
     self.FiveCalculatedToSixTransform = slicer.util.getNode("FiveCalculatedToSixTransform")

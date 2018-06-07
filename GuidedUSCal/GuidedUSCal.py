@@ -10,34 +10,28 @@ import sitkUtils
 
 # This is the basis of your module and will load the basic module GUI 
 class GuidedUSCal(ScriptedLoadableModule):
-  # comment string showing where to obtain this 
   """Uses ScriptedLoadableModuleWidget base class, available at:
   https://github.com/Slicer/Slicer/blob/master/Base/Python/slicer/ScriptedLoadableModule.py
   """ 
   #define some things about your module here 
   def __init__(self, parent):
     ScriptedLoadableModule.__init__(self, parent)
-    #Module title 
     self.parent.title= "US Calibration Module"
-    #where in the module list it will appear 
     self.parent.categories=["IGT"]
-    #who wrote it 
+    self.parent.dependencies = ["VolumeResliceDriver", "CreateModels", "CalibrationAlgo"]
     self.parent.contributors=["Leah Groves"]
-    # discriptor string telling what the module does 
-    self.parent.helpText="""
-This is a scripted loadable module that performs Ultrsound Calibration
-"""
+    self.parent.helpText="""This is a scripted loadable module that performs ultrasound calibration."""
     self.parent.helpText = self.getDefaultModuleDocumentationLink()
   
-#this contains the widget (GUI) portion of the code         
+# This class contains the widget (GUI) portion of the code
 class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
   """Uses ScriptedLoadableModuleWidget base class, available at:
   https://github.com/Slicer/Slicer/blob/master/Base/Python/slicer/ScriptedLoadableModule.py
   """
   def __init__(self, parent=None):
-    # set variables here
     ScriptedLoadableModuleWidget.__init__(self, parent)
-    #sets important variable equal to None 
+
+    # Set member variables equal to None
     self.fiducialNode = None
     self.connectorNode = None
     self.sceneObserverTag = None
@@ -60,10 +54,10 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
     slicer.mymod = self
      #This sets the view being used to the red view only 
     slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUpRedSliceView)
-    l=slicer.modules.createmodels.logic()
+
+    l = slicer.modules.createmodels.logic()
     self.needle = l.CreateNeedle(150, 0.4, 0, False)
-    
-	
+
     #This code block creates a collapsible button 
     #This defines which type of button you are using 
     self.usButton = ctk.ctkCollapsibleButton()
@@ -91,7 +85,7 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
     self.inputPortLineEdit.toolTip = "Put the Port of your ultrasound device here"
     self.usLayout.addRow("Server Port:", self.inputPortLineEdit)
 
-      #This is a push button 
+    #This is a push button 
     self.connectButton = qt.QPushButton()
     self.connectButton.setDefault(False)
     #This button says connect 
@@ -123,8 +117,8 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
     self.fiducialContainer = ctk.ctkCollapsibleButton()
     self.fiducialContainer.text = "Registration"
     self.fiducialLayout = qt.QFormLayout(self.fiducialContainer)
-	
-	 #add combo box for linear transform node 
+
+    #add combo box for linear transform node 
     self.TransformSelector = slicer.qMRMLNodeComboBox()
     self.TransformSelector.nodeTypes = ["vtkMRMLLinearTransformNode"]
     self.TransformSelector.selectNodeUponCreation = True
@@ -136,7 +130,6 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
     self.TransformSelector.setMRMLScene( slicer.mrmlScene )
     self.TransformSelector.setToolTip( "Pick the transform representing the straw line." )
     self.fiducialLayout.addRow("Tip to Probe: ", self.TransformSelector)
-   
 	
 	   #This is the exact same as the code block below but it freezes the US to capture a screenshot 
     self.freezeButton = qt.QPushButton()
@@ -277,7 +270,7 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
           self.resliceLogic.SetModeForSlice(self.resliceLogic.MODE_TRANSVERSE, slicer.mrmlScene.GetNodeByID('vtkMRMLSliceNodeRed'))
           slicer.app.layoutManager().sliceWidget("Red").sliceController().fitSliceToBackground()
       if self.connectorNode.GetState() == 2:
-      # Connected, disconnect
+        # Connected, disconnect
         self.connectorNode.Stop()
         self.connectButton.text = "Connect"
         self.freezeButton.text = "Unfreeze" 
@@ -297,23 +290,17 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
 		
         centroid = self.centroidFinder(otsu_filter, binary_filt, conncomp_filt)
         self.numFid = self.numFid + 1 
-        self.numFidLabel.setText(str(self.numFid)) 
-	    #Collect the line in tracker space
+        self.numFidLabel.setText(str(self.numFid))
+
+	      # Collect the line in tracker space
         tipToProbeTransform = vtk.vtkMatrix4x4()
         self.TransformSelector.currentNode().GetMatrixTransformToWorld(tipToProbeTransform)
         origin = [tipToProbeTransform.GetElement(0, 3), tipToProbeTransform.GetElement(1,3), tipToProbeTransform.GetElement(2,3)]
         dir = [tipToProbeTransform.GetElement(0, 2), tipToProbeTransform.GetElement(1,2), tipToProbeTransform.GetElement(2,2)]
         self.logic.AddPointAndLine([centroid[0],centroid[1],0], origin, dir)
-        # print('origin' + str(origin))
-        # print('dir' + str(dir))
-        print('centroid' + str(centroid))
-	  
+
+        # TODO : create UI elements to populate with output data 
         self.ImageToProbe = self.logic.CalculateRegistration()
-        print('Calibration Transformation:') 
-        print(self.ImageToProbe)
-        print('Tip to probe:')
-        print(tipToProbeTransform) 
-        print('Error: ' + str(self.logic.GetError()))	
         self.connectorNode.Start()
         self.connectButton.text = "Disconnect"
         self.freezeButton.text = "Freeze"
@@ -321,7 +308,7 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
         self.needle.SetAndObserveTransformNodeID(self.TransformSelector.currentNode().GetID()) 
         slicer.app.layoutManager().sliceWidget("Red").sliceController().fitSliceToBackground()     
       else:
-      # This starts the connection
+        # This starts the connection
         self.connectorNode.Start()
         self.connectButton.text = "Disconnect"
         self.freezeButton.text = "Freeze"
@@ -338,7 +325,7 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
           self.resliceLogic.SetModeForSlice(self.resliceLogic.MODE_TRANSVERSE, slicer.mrmlScene.GetNodeByID('vtkMRMLSliceNodeRed'))
           slicer.app.layoutManager().sliceWidget("Red").sliceController().fitSliceToBackground()
       if self.connectorNode.GetState() == 2:
-      # Csonnected, disconnect
+      # Connected, disconnect
         self.connectorNode.Stop()
         self.connectButton.text = "Connect"
         self.freezeButton.text = "Unfreeze"
@@ -351,11 +338,10 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
         self.connectorNode.Start()
            
       if self.fiducialNode is not None:
-	    self.fiducialNode.RemoveAllMarkups()
-  	  
+	      self.fiducialNode.RemoveAllMarkups()
 
   def onImageChanged(self, index):
-      # def onImageChanged(self, newImageNode):
+    # def onImageChanged(self, newImageNode):
     if self.imageNode is not None:
       # Unparent
       self.imageNode.SetAndObserveTransformNodeID(None)
@@ -369,8 +355,7 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
     self.resliceLogic.SetDriverForSlice(self.imageSelector.currentNode().GetID(), slicer.mrmlScene.GetNodeByID('vtkMRMLSliceNodeRed'))
     self.resliceLogic.SetModeForSlice(self.resliceLogic.MODE_TRANSVERSE, slicer.mrmlScene.GetNodeByID('vtkMRMLSliceNodeRed'))
     slicer.app.layoutManager().sliceWidget("Red").sliceController().fitSliceToBackground()
- 
- 
+
   def onInputChanged(self, string):
     if re.match("\d{1,3}\.\d{1,3}\.\d{1,3}[^0-9]", self.inputIPLineEdit.text) and self.inputPortLineEdit.text != "" and int(self.inputPortLineEdit.text) > 0 and int(self.inputPortLineEdit.text) <= 65535:
       self.connectButton.enabled = True
@@ -379,7 +364,6 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
         self.connectorNode.SetTypeClient(self.inputIPLineEdit.text, int(self.inputPortLineEdit.text))
     else:
       self.connectButton.enabled = False
-   #   self.freezeButton.enabled = False
 
   def onProbeChanged(self, newProbeNode):
     if self.probeNode is not None:
@@ -390,17 +374,22 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
     self.probeNode = self.probeTransformSelector.currentNode()
     self.outputRegistrationTransformNode.SetAndObserveTransformNodeID(self.probeTransformSelector.currentNode().GetID())
 
-  # removes the observer    
+  # removes the observer
   def cleanup(self):
     if self.sceneObserverTag is not None:
       slicer.mrmlScene.RemoveObserver(self.sceneObserverTag)
       self.sceneObserverTag = None
 
-    self.connectButton.disconnect('clicked(bool)', self.onConnectButtonClicked)
-    self.freezeButton.disconnect('clicked(bool)', self.onConnectButtonClicked)
-    self.inputIPLineEdit.disconnect('textChanged(QString)', self.onInputChanged)
-    self.inputPortLineEdit.disconnect('textChanged(QString)', self.onInputChanged)
-    self.imageSelector.disconnect('currentNodeChanged(vtkMRMLNode*)', self.onImageChanged)
+    if self.connectButton is not None:
+      self.connectButton.disconnect('clicked(bool)', self.onConnectButtonClicked)
+    if self.freezeButton is not None:
+      self.freezeButton.disconnect('clicked(bool)', self.onConnectButtonClicked)
+    if self.inputIPLineEdit is not None:
+      self.inputIPLineEdit.disconnect('textChanged(QString)', self.onInputChanged)
+    if self.inputPortLineEdit is not None:
+      self.inputPortLineEdit.disconnect('textChanged(QString)', self.onInputChanged)
+    if self.imageSelector is not None:
+      self.imageSelector.disconnect('currentNodeChanged(vtkMRMLNode*)', self.onImageChanged)
 
   def onVisualizeButtonClicked(self):
     if self.fiducialNode is not None:
@@ -413,16 +402,9 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
       self.isVisualizing = True
       slicer.app.layoutManager().sliceWidget('Red').sliceLogic().GetSliceNode().SetSliceVisible(True)
       slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUp3DView)
-      self.visualizeButton.text = 'Show Slices'
-	  
-    if self.TransformSelector.currentNode() is not None:
-      self.connectorNode.InvokeEvent(slicer.vtkMRMLIGTLConnectorNode.DeviceModifiedEvent) 
 
-  def onResetButtonClicked(self):
-    if self.fiducialNode is not None:
-	  self.fiducialNode.RemoveAllMarkups()
     Reset()
-	
+
   def Reset(self):
     slicer.modules.guideduscalalgo.logic().Reset()
 	
@@ -444,7 +426,6 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
       count = count+1
 	  
     needle_loc = np.argmax(sizeconn)
-	
 
     I_CC_reshape = np.reshape(I_CC_array, (1,r*c))
     needle_find = np.where(I_CC_reshape == needle_loc)
@@ -454,20 +435,14 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
 
     I_CC_out_im = sitk.Cast(sitk.GetImageFromArray(I_CC_rot), sitk.sitkFloat32)
     Canny_edge = sitk.CannyEdgeDetectionImageFilter()
-    I_edge=sitk.Cast(Canny_edge.Execute(I_CC_out_im), sitk.sitkUInt8)
+    I_edge = sitk.Cast(Canny_edge.Execute(I_CC_out_im), sitk.sitkUInt8)
 
     dilate_filt = sitk.BinaryDilateImageFilter()
     dilate_filt.SetKernelType(sitk.sitkBox)
     dilate_filt.SetKernelRadius([16,8])
-    I_dil=dilate_filt.Execute(I_edge)
-    I_dil_array = (np.rot90(np.rot90(sitk.GetArrayFromImage(I_dil))))
-	
-    # [Xval, Yval] = np.where(I_dil_array ==1)
-	
-    # I_dil_new = I_dil_array[Xval[0]-20:Xval[-1]+20, Yval[0]-20:Yval[0]+20]
-	
-    [Idx, Idy] = np.where(I_dil_array ==1)
-    
+    I_dil = dilate_filt.Execute(I_edge)
+    I_dil_array = (np.rot90(np.rot90(sitk.GetArrayFromImage(I_dil))))	
+    [Idx, Idy] = np.where(I_dil_array == 1)
 
     Idc1 = np.zeros(len(Idy))
     Idc2 = Idc1
@@ -502,13 +477,59 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
     print(vert1[0][0], vert1[0][-1], vert2[0][0], vert2[0][-1])
     print(Hor1[1][0], Hor1[1][-1], vert2[1][0], vert1[1][0])
     centroid = [X_avg, Y_avg]
-    return centroid 
+    return centroid
+
+  def fitUltrasoundImageToView(self):
+    redWidget = slicer.app.layoutManager().sliceWidget('Red')
+    redWidget.sliceController().fitSliceToBackground()
+
+  #This gets called when the markup is added
+  def onMarkupAdded(self, fiducialNodeCaller, event):
+    #set the location and index to zero because its needs to be initialized
+    centroid = [0,0,0]
+    self.numFid = self.numFid + 1 
+    #This checks if there is not a display node 
+    if self.fiducialNode.GetDisplayNode() is None:
+      #then creates one if that is the case 
+      self.fiducialNode.CreateDefaultDisplayNodes()
+    # this sets a variable as the display node
+    displayNode = self.fiducialNode.GetDisplayNode()
+    # This sets the type to be a cross hair
+    displayNode.SetGlyphType(3)
+    #This sets the size
+    displayNode.SetGlyphScale(2.5)
+    #this says that you dont want text
+    displayNode.SetTextScale(0)
+    #this sets the color
+    displayNode.SetSelectedColor(0, 0, 1)
+    # this saves the location the markup is place
+    # Collect the point in image space
+    self.fiducialNode.GetMarkupPoint(self.fiducialNode.GetNumberOfMarkups()-1,0, centroid)	
+    self.numFidLabel.setText(str(self.numFid)) 
+    #Collect the line in tracker space
+    tipToProbeTransform = vtk.vtkMatrix4x4()
+    self.TransformSelector.currentNode().GetMatrixTransformToWorld(tipToProbeTransform)
+    origin = [tipToProbeTransform.GetElement(0, 3), tipToProbeTransform.GetElement(1,3), tipToProbeTransform.GetElement(2,3)]
+    dir = [tipToProbeTransform.GetElement(0, 2), tipToProbeTransform.GetElement(1,2), tipToProbeTransform.GetElement(2,2)]
+    self.logic.AddPointAndLine([centroid[0],centroid[1],0], origin, dir)
+
+    if self.numFid >= 1:
+      self.ImageToProbe = self.logic.CalculateRegistration()
+      # TODO : put results of calibration into GUI somewhere
+      self.connectorNode.Start()
+
+    # TODO : add a GUI element to make this configurable
+    if self.numFid >= 15: 
+      self.outputRegistrationTransformNode.SetMatrixTransformToParent(self.ImageToProbe)
+
+  def Reset(self):
+    self.logic.Reset()
 
 class GuidedUSCalLogic(ScriptedLoadableModuleLogic):
   def __init__(self):
-    self.regLogic = slicer.modules.guideduscalalgo.logic()
-    self.regLogic.SetLandmarkRegistrationToSimilarity()	
-	
+    self.regLogic = slicer.modules.pointtolineregistration.logic()
+    self.regLogic.SetLandmarkRegistrationModeToSimilarity()
+
   def AddPointAndLine(self, point, lineOrigin, lineDirection):
     self.regLogic.AddPointAndLine(point, lineOrigin, lineDirection)
 
@@ -520,3 +541,6 @@ class GuidedUSCalLogic(ScriptedLoadableModuleLogic):
 
   def GetError(self):
     return self.regLogic.GetError()
+
+  def Reset(self):
+    self.regLogic.Reset()
