@@ -18,7 +18,7 @@ class GuidedUSCal(ScriptedLoadableModule):
     ScriptedLoadableModule.__init__(self, parent)
     self.parent.title= "US Calibration Module"
     self.parent.categories=["IGT"]
-    self.parent.dependencies = ["VolumeResliceDriver", "CreateModels", "CalibrationAlgo"]
+    self.parent.dependencies = ["VolumeResliceDriver", "CreateModels", "PointToLineRegistration"]
     self.parent.contributors=["Leah Groves"]
     self.parent.helpText="""This is a scripted loadable module that performs ultrasound calibration."""
     self.parent.helpText = self.getDefaultModuleDocumentationLink()
@@ -180,12 +180,10 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
     # Connections
     self.connectButton.connect('clicked(bool)', self.onConnectButtonClicked)
     self.freezeButton.connect('clicked(bool)', self.onConnectButtonClicked)
-    self.shortcut.connect('activated()', self.onConnectButtonClicked)
     self.inputIPLineEdit.connect('textChanged(QString)', self.onInputChanged)
     self.inputPortLineEdit.connect('textChanged(QString)', self.onInputChanged)
     self.imageSelector.connect('currentNodeChanged(vtkMRMLNode*)', self.onImageChanged)
     self.resetButton.connect('clicked(bool)', self.onResetButtonClicked)
-
     # Disable buttons until conditions are met
     self.connectButton.setEnabled(False) 
     self.freezeButton.setEnabled(False) 
@@ -261,17 +259,11 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
     if self.manualButton.isChecked()== False:
       if self.connectorNode is None:
         self.connectorNode = slicer.vtkMRMLIGTLConnectorNode()
-      # Adds this node to the scene, not there is no need for self here as it is its own node
+        # Adds this node to the scene, not there is no need for self here as it is its own node
         slicer.mrmlScene.AddNode(self.connectorNode)
-      # Configures the connector
+        # Configures the connector
         self.connectorNode.SetTypeClient(self.inputIPLineEdit.text, int(self.inputPortLineEdit.text))
-        if self.imageSelector.currentNode() is not None:
-          slicer.app.layoutManager().sliceWidget('Red').sliceLogic().GetSliceCompositeNode().SetBackgroundVolumeID(self.imageSelector.currentNode().GetID())
-          # Configure volume reslice driver, transverse
-          self.resliceLogic.SetDriverForSlice(self.imageSelector.currentNode().GetID(), slicer.mrmlScene.GetNodeByID('vtkMRMLSliceNodeRed'))
-          self.resliceLogic.SetModeForSlice(self.resliceLogic.MODE_TRANSVERSE, slicer.mrmlScene.GetNodeByID('vtkMRMLSliceNodeRed'))
-          slicer.app.layoutManager().sliceWidget("Red").sliceController().fitSliceToBackground()
-      if self.connectorNode.GetState() == slicer.vtkMRMLIGTLConnectorNode.StateConnected:
+      if self.connectorNode.GetState() == slicer.vtkMRMLIGTLConnectorNode.STATE_CONNECTED:
         # Connected
         self.connectorNode.Stop()
         self.connectButton.text = "Connect"
@@ -313,7 +305,7 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
           self.resliceLogic.SetDriverForSlice(self.imageSelector.currentNode().GetID(), slicer.mrmlScene.GetNodeByID('vtkMRMLSliceNodeRed'))
           self.resliceLogic.SetModeForSlice(self.resliceLogic.MODE_TRANSVERSE, slicer.mrmlScene.GetNodeByID('vtkMRMLSliceNodeRed'))
           slicer.app.layoutManager().sliceWidget("Red").sliceController().fitSliceToBackground()
-      if self.connectorNode.GetState() == slicer.vtkMRMLIGTLConnectorNode.StateConnected:
+      if self.connectorNode.GetState() == slicer.vtkMRMLIGTLConnectorNode.STATE_CONNECTED:
       # Connected, so disconnect
         self.connectorNode.Stop()
         self.connectButton.text = "Connect"
@@ -333,8 +325,7 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
     if self.imageNode is not None:
       # Unparent
       self.imageNode.SetAndObserveTransformNodeID(None)
-    else:
-      return()
+      self.imageNode = None
 
     self.imageNode = self.imageSelector.currentNode()
     self.imageSelector.currentNode().SetAndObserveTransformNodeID(self.outputRegistrationTransformNode.GetID())
@@ -358,8 +349,7 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
     if self.probeNode is not None:
       # Unparent
       self.probeNode.SetAndObserveTransformNodeID(None)
-    else:
-      return()
+      self.probeNode = None
 
     self.probeNode = self.probeTransformSelector.currentNode()
     self.outputRegistrationTransformNode.SetAndObserveTransformNodeID(self.probeTransformSelector.currentNode().GetID())
@@ -393,10 +383,10 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
       slicer.app.layoutManager().sliceWidget('Red').sliceLogic().GetSliceNode().SetSliceVisible(True)
       slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUp3DView)
 
-    Reset()
+    onResetButtonClicked()
 
-  def Reset(self):
-    slicer.modules.guideduscalalgo.logic().Reset()
+  def onResetButtonClicked(self):
+    self.logic.Reset()
 
   def centroidFinder(self, image, otsu_filter, binary_filt, conncomp_filt):
     I = image
@@ -508,9 +498,6 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
     # TODO : add a GUI element to make this configurable
     if self.numFid >= 15: 
       self.outputRegistrationTransformNode.SetMatrixTransformToParent(self.ImageToProbe)
-
-  def Reset(self):
-    self.logic.Reset()
 
 class GuidedUSCalLogic(ScriptedLoadableModuleLogic):
   def __init__(self):
