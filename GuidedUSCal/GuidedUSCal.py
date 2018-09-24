@@ -515,7 +515,7 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
           self.sequenceNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLSequenceNode")
           self.sequenceNode2 = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLSequenceNode")
           self.sequenceBrowserNode.AddProxyNode(self.transformNode, self.sequenceNode)
-          self.sequenceBrowserNode.AddProxyNode(self.imageNode self.sequenceNode2)
+          self.sequenceBrowserNode.AddProxyNode(self.imageNode, self.sequenceNode2)
           self.sequenceBrowserLogic.AddSynchronizedNode(self.sequenceNode, self.transformNode, self.sequenceBrowserNode)
           self.sequenceBrowserLogic.AddSynchronizedNode(self.sequenceNode2, self.imageNode, self.sequenceBrowserNode)
           self.sequenceBrowserNode.EndModify(self.modifyFlag)
@@ -584,9 +584,13 @@ class GuidedUSCalWidget(ScriptedLoadableModuleWidget):
       slicer.app.layoutManager().sliceWidget('Red').sliceLogic().GetSliceNode().SetSliceVisible(True)
       slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutOneUp3DView)
       self.visualizeButton.text = 'Show ultrasound stream'
-      if self.needleNode is None: 
-          print('Please select an US volume')
+      if self.transformNode is None: 
+        print('Please select an US volume')
       else:
+        if self.manualOutputRegistrationTransformNode is None: 
+          self.manualOutputRegistrationTransformNode = slicer.vtkMRMLLinearTransformNode()
+          slicer.mrmlScene.AddNode(self.manualOutputRegistrationTransformNode)
+          self.manualOutputRegistrationTransformNode.SetName('ImageToProbeMan')
         self.imageNode.SetAndObserveTransformNodeID(self.manualOutputRegistrationTransformNode.GetID())
         self.manualOutputRegistrationTransformNode.SetMatrixTransformToParent(self.ImageToProbeMan)
 
