@@ -10,7 +10,7 @@ class VRVisionExperiment(ScriptedLoadableModule):
     ScriptedLoadableModule.__init__(self, parent)
     self.parent.title = "VR Vision Experiment"
     self.parent.categories = ["Research"]
-    self.parent.dependencies = []
+    self.parent.dependencies = ["virtualreality"]
     self.parent.contributors = ["Adam Rankin (Robarts Research), Sara Pac (Western University)"]
     self.parent.helpText = """This module performs vision experiments involving a touching task in VR"""
     self.parent.helpText += self.getDefaultModuleDocumentationLink()
@@ -18,39 +18,40 @@ class VRVisionExperiment(ScriptedLoadableModule):
 
 # VRVisionExperimentWidget
 class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
+  def __init__(self):
+    self.sphereModel = None
+    self.vrView = None
+    self.vrViewNode = None
+    self.logic = VRVisionExperimentLogic()
+
   def setup(self):
     ScriptedLoadableModuleWidget.setup(self)
+
+    filename = os.path.join(os.path.dirname(slicer.modules.vrvisionexperiment.path), 'Resources/Models/sphere.stl')
+    success, self.sphereModel = slicer.util.loadModel(filename, True)
 
     # Parameters Area
     parametersCollapsibleButton = ctk.ctkCollapsibleButton()
     parametersCollapsibleButton.text = "Parameters"
     self.layout.addWidget(parametersCollapsibleButton)
 
-    # Layout within the dummy collapsible button
+    # Layout within the collapsible button
     parametersFormLayout = qt.QFormLayout(parametersCollapsibleButton)
 
-    # input volume selector
-    self.inputSelector = slicer.qMRMLNodeComboBox()
-    self.inputSelector.nodeTypes = ["vtkMRMLScalarVolumeNode"]
-    self.inputSelector.selectNodeUponCreation = True
-    self.inputSelector.addEnabled = False
-    self.inputSelector.removeEnabled = False
-    self.inputSelector.noneEnabled = False
-    self.inputSelector.showHidden = False
-    self.inputSelector.showChildNodeTypes = False
-    self.inputSelector.setMRMLScene( slicer.mrmlScene )
-    self.inputSelector.setToolTip( "Pick the input to the algorithm." )
-    parametersFormLayout.addRow("Input Volume: ", self.inputSelector)
+    # Init Button
+    self.initButton = qt.QPushButton("Initialize")
+    self.initButton.toolTip = "Reset everything."
+    self.layout.addWidget(self.initButton)
 
-    # Apply Button
+    # Apply button
     self.applyButton = qt.QPushButton("Apply")
     self.applyButton.toolTip = "Run the algorithm."
     self.applyButton.enabled = False
-    parametersFormLayout.addRow(self.applyButton)
+    self.layout.addWidget(self.applyButton)
 
     # connections
+    self.initButton.connect('clicked(bool)', self.onInitButton)
     self.applyButton.connect('clicked(bool)', self.onApplyButton)
-    self.inputSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onSelect)
 
     # Add vertical spacer
     self.layout.addStretch(1)
@@ -61,15 +62,31 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
   def cleanup(self):
     pass
 
-  def onSelect(self):
-    self.applyButton.enabled = self.inputSelector.currentNode()
+  def onInitButton(self):
+    # Ensure VR module has been created
+    if slicer.modules.virtualreality is None:
+      logging.error("Unable to load VR module, has it been installed?")
+      return()
+    widget = slicer.modules.virtualreality.widgetRepresentation()
+
+    # Set layout to 3D only
+    slicer.app.layoutManager().setLayout(4)
+    # Reset 3D view to A facing P
+    slicer.app.layoutManager().threeDWidget(0).threeDController().lookFromAxis(ctk.ctkAxisWidget.Anterior)
+    # Ensure all connections are correct
+    self.vrView = widget.viewWidget()
+    self.vrView.mrmlVirtualRealityViewNode().SetAndObserveReferenceViewNode(slicer.app.layoutManager().threeDWidget(0).mrmlViewNode())
+    # Reset VR view to ref view
+    self.vrView.updateViewFromReferenceViewCamera()
+
+    # Create room
 
   def onApplyButton(self):
-    logic = VRVisionExperimentLogic()
+    self.logic.run()
 
 # VRVisionExperimentLogic
 class VRVisionExperimentLogic(ScriptedLoadableModuleLogic):
-  def run(self, inputVolume):
+  def run(self):
     return True
 
 # VRVisionExperimentTest
