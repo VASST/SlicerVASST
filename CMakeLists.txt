@@ -43,6 +43,7 @@ endif()
 # Extension modules
 add_subdirectory(NeoGuidance)
 add_subdirectory(GuidedUSCal)
+add_subdirectory(VRVisionExperiment)
 ## NEXT_MODULE
 
 #-----------------------------------------------------------------------------
