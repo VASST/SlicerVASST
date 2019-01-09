@@ -10,7 +10,7 @@ class VRVisionExperiment(ScriptedLoadableModule):
     ScriptedLoadableModule.__init__(self, parent)
     self.parent.title = "VR Vision Experiment"
     self.parent.categories = ["Research"]
-    self.parent.dependencies = ["virtualreality"]
+    self.parent.dependencies = ["VirtualReality"]
     self.parent.contributors = ["Adam Rankin (Robarts Research), Sara Pac (Western University)"]
     self.parent.helpText = """This module performs vision experiments involving a touching task in VR"""
     self.parent.helpText += self.getDefaultModuleDocumentationLink()
@@ -18,7 +18,9 @@ class VRVisionExperiment(ScriptedLoadableModule):
 
 # VRVisionExperimentWidget
 class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
-  def __init__(self):
+  def __init__(self, parent=None):
+    ScriptedLoadableModuleWidget.__init__(self, parent)
+
     self.sphereModel = None
     self.needleModelNode = None
 
@@ -71,7 +73,7 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
     formLayout.addRow("Condition:", self.conditionLineEdit)
     self.trialNumberSpinBox = qt.QSpinBox()
     formLayout.addRow("Trial Number:", self.trialNumberSpinBox)
-    self.trialNumberSpinBox.SetValue(1)
+    self.trialNumberSpinBox.setValue(1)
     self.trialNumberSpinBox.setMinimum(1)
     self.saveButton = qt.QPushButton("Save")
     self.saveButton.toolTip = "Save the current data set to file."
@@ -92,9 +94,6 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
     # Add vertical spacer
     self.layout.addStretch(1)
 
-    # Refresh Apply button state
-    self.onSelect()
-
   def cleanup(self):
     self.initButton.disconnect('clicked(bool)', self.onInitButton)
     self.saveButton.disconnect('clicked(bool)', self.onSaveButton)
@@ -104,6 +103,8 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
     self.saveButton.enabled = False
 
   def onInitButton(self):
+    # TODO: Implement reset, clean up existing transform and model nodes
+
     # Ensure VR module has been created
     if slicer.modules.virtualreality is None:
       logging.error("Unable to load VR module, has it been installed?")
@@ -116,24 +117,37 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
     # Set layout to 3D only
     slicer.app.layoutManager().setLayout(4)
     # Reset 3D view to A facing P, TODO: reset to a known view position as this method does not always return to exact same position (always same direction though)
-    slicer.app.layoutManager().threeDWidget(0).threeDController().lookFromAxis(ctk.ctkAxisWidget.Anterior)
+    slicer.app.layoutManager().threeDWidget(0).threeDController().lookFromAxis(ctk.ctkAxesWidget.Anterior)
     # Ensure all connections are correct
-    self.vrView = widget.viewWidget()
+    if hasattr(widget, 'viewWidget'):
+      self.vrView = widget.viewWidget()
+    else:
+      for i in slicer.app.topLevelWidgets():
+        if i.name == "VirtualRealityWidget":
+          self.vrView = i
+          break
     if self.vrView is None:
       logging.error("VR in Slicer is not available. Is headset plugged in, SteamVR running?")
       return()
+    if self.vrView.mrmlVirtualRealityViewNode() is None:
+      logging.error("VR is not running in Slicer. Please click the VR button in the quickbar, or use the VR module to start VR.")
+      return ()
     self.vrView.mrmlVirtualRealityViewNode().SetAndObserveReferenceViewNode(slicer.app.layoutManager().threeDWidget(0).mrmlViewNode())
     # Reset VR view to ref view
     self.vrView.updateViewFromReferenceViewCamera()
     # Ensure transforms are updated for VR controllers
     self.vrView.mrmlVirtualRealityViewNode().SetControllerTransformsUpdate(True)
     # Hide controllers
-    self.vrView.SetControllerModelsVisible(False)
+    self.vrView.mrmlVirtualRealityViewNode().SetControllerModelsVisible(False)
     # Set the RAStoPhysical magnification to 1x
     self.vrView.mrmlVirtualRealityViewNode().SetMagnification(1.0)
     # Disable interactor
     self.vrView.renderWindow().SetInteractor(None)
 
+    # Give Slicer some time to update all the various things we just changed
+    qt.QTimer.singleShot(5, self.onFinishInitButton)
+
+  def onFinishInitButton(self):
     # Create sphere, hide for now
     filename = os.path.join(os.path.dirname(slicer.modules.vrvisionexperiment.path), 'Resources/Models/sphere.stl')
     success, self.sphereModel = slicer.util.loadModel(filename, True)
@@ -145,10 +159,13 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
     # Create needle model and parent transform
     filename = os.path.join(os.path.dirname(slicer.modules.vrvisionexperiment.path), 'Resources/Models/needle.stl')
     success, self.needleModelNode = slicer.util.loadModel(filename, True)
+    if not success:
+      logging.error("Unable to load needle model. Is module installed correctly?")
+      return()
     controllerNode = self.vrView.mrmlVirtualRealityViewNode().GetRightControllerTransformNode()
-    if controllerNode is None:
+    if controllerNode is None or controllerNode.GetAttribute("VirtualReality.ControllerActive") == '0':
       controllerNode = self.vrView.mrmlVirtualRealityViewNode().GetLeftControllerTransformNode()
-      if controllerNode is None:
+      if controllerNode is None or controllerNode.GetAttribute("VirtualReality.ControllerActive") == '0':
         logging.error("Unable to find controller transform, is one of the controllers turned on and detected?")
         return()
     self.needleModelNode.SetAndObserveTransformNodeID(controllerNode.GetID())
@@ -162,7 +179,7 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
         return()
       modelNode.SetName('CubeModel'+name)
       setattr(self, 'cubeModel' + name, modelNode)
-      filename = os.path.join(os.path.dirname(slicer.modules.vrvisionexperiment.path), 'Resources/Slicer/ScaleCube'+name+'.vtk')
+      filename = os.path.join(os.path.dirname(slicer.modules.vrvisionexperiment.path), 'Resources/Slicer/Scene/ScaleCube'+name+'.h5')
       success, transformNode = slicer.util.loadTransform(filename, True)
       if not success:
         logging.error("Unable to load cube transform, ensure module is correctly installed.")
