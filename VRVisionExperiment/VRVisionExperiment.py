@@ -51,7 +51,7 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
     ScriptedLoadableModuleWidget.setup(self)
 
     # Init Button
-    self.initButton = qt.QPushButton("Initialize")
+    self.initButton = qt.QPushButton("Initialize/Reset")
     self.initButton.toolTip = "Reset everything."
     self.layout.addWidget(self.initButton)
 
@@ -129,6 +129,10 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
     self.vrView.mrmlVirtualRealityViewNode().SetControllerTransformsUpdate(True)
     # Hide controllers
     self.vrView.SetControllerModelsVisible(False)
+    # Set the RAStoPhysical magnification to 1x
+    self.vrView.mrmlVirtualRealityViewNode().SetMagnification(1.0)
+    # Disable interactor
+    self.vrView.renderWindow().SetInteractor(None)
 
     # Create sphere, hide for now
     filename = os.path.join(os.path.dirname(slicer.modules.vrvisionexperiment.path), 'Resources/Models/sphere.stl')
