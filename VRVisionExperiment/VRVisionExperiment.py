@@ -49,6 +49,11 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
     self.trialNumberSpinBox = None
     self.conditionLineEdit = None
 
+    self.sequenceGroupBox = None
+    self.motionSequenceButton = None
+    self.nomotionSequenceButton = None
+    self.replaySequenceButton = None
+
   def setup(self):
     ScriptedLoadableModuleWidget.setup(self)
 
@@ -79,6 +84,14 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
     self.saveButton.toolTip = "Save the current data set to file."
     self.saveButton.enabled = False
     formLayout.addRow(self.saveButton)
+    self.sequenceGroupBox = qt.QGroupBox("Target Sequences")
+    layout = qt.QHBoxLayout(self.sequenceGroupBox)
+    self.motionSequenceButton = qt.QButton("Load Motion")
+    layout.addWidget(self.motionSequenceButton)
+    self.nomotionSequenceButton = qt.QButton("Load No-motion")
+    layout.addWidget(self.nomotionSequenceButton)
+    self.replaySequenceButton = qt.QButton("Load Replay")
+    layout.addWidget(self.replaySequenceButton)
 
     # Apply button
     self.captureButton = qt.QPushButton("Capture")
@@ -112,7 +125,7 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
     widget = slicer.modules.virtualreality.widgetRepresentation()
     if widget is None:
       logging.error("Unable to create VR widget, module is not functioning as expect, troubleshoot VR in Slicer.")
-      return ()
+      return()
 
     # Set layout to 3D only
     slicer.app.layoutManager().setLayout(4)
