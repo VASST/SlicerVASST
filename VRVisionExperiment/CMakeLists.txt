@@ -8,6 +8,18 @@ set(MODULE_PYTHON_SCRIPTS
 
 set(MODULE_PYTHON_RESOURCES
   Resources/Icons/${MODULE_NAME}.png
+  Resources/Models/CubeModel.vtk
+  Resources/Models/needle.stl
+  Resources/Models/sphere.stl
+  Resources/Slicer/Scene/motion.txt
+  Resources/Slicer/Scene/nomotion.txt
+  Resources/Slicer/Scene/replay.txt
+  Resources/Slicer/Scene/ScaleCubeBack.h5
+  Resources/Slicer/Scene/ScaleCubeFront.h5
+  Resources/Slicer/Scene/ScaleCubeLeft.h5
+  Resources/Slicer/Scene/ScaleCubeRight.h5
+  Resources/Slicer/Scene/ScaleCubeRoof.h5
+  Resources/Slicer/Scene/ScaleCubeFloor.h5
   )
 
 #-----------------------------------------------------------------------------
