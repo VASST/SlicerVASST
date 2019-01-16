@@ -1,6 +1,11 @@
 #-----------------------------------------------------------------------------
 set(MODULE_NAME GuidedUSCal)
 
+if(NOT SlicerIGT_FOUND OR NOT VASSTAlgorithms_FOUND)
+  message(FATAL_ERROR "Unable to find dependent modules. Please ensure SlicerIGT and VASSTAlgorithms have been built properly.")
+  return()
+endif()
+
 #-----------------------------------------------------------------------------
 set(MODULE_PYTHON_SCRIPTS
   ${MODULE_NAME}.py
