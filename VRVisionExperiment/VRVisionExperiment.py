@@ -210,37 +210,36 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
     # Add vertical spacer
     self.layout.addStretch(1)
 
-  def SafeDisconnect(self, obj, functionName, function):
+  def safeDisconnect(self, obj, functionName, function):
     if obj is not None and hasattr(obj, "disconnect"):
       obj.disconnect(functionName, function)
 
   def cleanup(self):
-    self.SafeDisconnect(self.initButton, 'clicked(bool)', self.onInitButton)
+    self.safeDisconnect(self.initButton, 'clicked(bool)', self.onInitButton)
 
-    self.SafeDisconnect(self.startButton, 'clicked(bool)', self.onStartButton)
-    self.SafeDisconnect(self.previousButton, 'clicked(bool)', self.onPreviousButton)
-    self.SafeDisconnect(self.nextButton, 'clicked(bool)', self.onNextButton)
-    self.SafeDisconnect(self.saveButton, 'clicked(bool)', self.onSaveButton)
-    self.SafeDisconnect(self.resetButton, 'clicked(bool)', self.onResetButton)
-    self.SafeDisconnect(self.captureButton, 'clicked(bool)', self.onCaptureButton)
+    self.safeDisconnect(self.startButton, 'clicked(bool)', self.onStartButton)
+    self.safeDisconnect(self.previousButton, 'clicked(bool)', self.onPreviousButton)
+    self.safeDisconnect(self.nextButton, 'clicked(bool)', self.onNextButton)
+    self.safeDisconnect(self.saveButton, 'clicked(bool)', self.onSaveButton)
+    self.safeDisconnect(self.resetButton, 'clicked(bool)', self.onResetButton)
+    self.safeDisconnect(self.captureButton, 'clicked(bool)', self.onCaptureButton)
 
-    self.SafeDisconnect(self.showControllerCheckBox, 'stateChanged(int)', self.onShowControllerCheckBox)
-    self.SafeDisconnect(self.showNeedleCheckBox, 'stateChanged(int)', self.onShowNeedleCheckBox)
+    self.safeDisconnect(self.showControllerCheckBox, 'stateChanged(int)', self.onShowControllerCheckBox)
+    self.safeDisconnect(self.showNeedleCheckBox, 'stateChanged(int)', self.onShowNeedleCheckBox)
 
-    self.SafeDisconnect(self.floorButton, 'clicked(bool)', self.onFloorButton)
-    self.SafeDisconnect(self.faceButton, 'clicked(bool)', self.onFaceButton)
+    self.safeDisconnect(self.floorButton, 'clicked(bool)', self.onFloorButton)
+    self.safeDisconnect(self.faceButton, 'clicked(bool)', self.onFaceButton)
 
-    self.SafeDisconnect(self.motionSequenceButton, 'clicked(bool)', self.onLoadMotionButton)
-    self.SafeDisconnect(self.nomotionSequenceButton, 'clicked(bool)', self.onLoadNoMotionButton)
-    self.SafeDisconnect(self.replaySequenceButton, 'clicked(bool)', self.onLoadReplayButton)
+    self.safeDisconnect(self.motionSequenceButton, 'clicked(bool)', self.onLoadMotionButton)
+    self.safeDisconnect(self.nomotionSequenceButton, 'clicked(bool)', self.onLoadNoMotionButton)
+    self.safeDisconnect(self.replaySequenceButton, 'clicked(bool)', self.onLoadReplayButton)
 
   def onFloorButton(self):
     # Record current Y position of controller as floor
     controllerNode = slicer.mrmlScene.GetNodeByID(self.needleModelNode.GetTransformNodeID())
     mat = vtk.vtkMatrix4x4()
     controllerNode.GetMatrixTransformToParent(mat)
-    y = mat.GetElement(1, 3)
-    self.floorHeight = y
+    self.floorHeight = mat.GetElement(1, 3)
     self.updateRoomPosition()
 
   def onFaceButton(self):
@@ -262,8 +261,11 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
     self.vrView.mrmlVirtualRealityViewNode().GetHMDTransformNode().GetMatrixTransformToParent(hmdMat)
     cubeMat.SetElement(0, 3, hmdMat.GetElement(0, 3))
     cubeMat.SetElement(1, 3, hmdMat.GetElement(1, 3))
-    # TODO : face position - floor height etc...
-    cubeMat.SetElement(2, 3, 600)  # 600mm = 0.6m
+    # Calculate the face position and set the floor height of the cube
+    _userFaceHeight = self.facePosition[1] - self.floorHeight
+    # cube is centered at 1m
+    _cubeHeight = _userFaceHeight - 1000
+    cubeMat.SetElement(2, 3, _cubeHeight)
     self.rootCubeTransformNode.SetMatrixTransformToParent(cubeMat)
 
   def onShowControllerCheckBox(self, newState):
@@ -310,10 +312,20 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
     self.onCurrentIndexChanged()
 
   def onCurrentIndexChanged(self):
+    # Transform point in face coord system to world/RAS coord system
+    _point = np.asarray([[self.currentReferenceSequence[self.currentIndex][0]],
+                         [self.currentReferenceSequence[self.currentIndex][1]],
+                         [self.currentReferenceSequence[self.currentIndex][2]],
+                         [1.0]], dtype=np.float64)
+    _faceToWorld = np.asmatrix(np.eye(4))
+    _faceToWorld[0, 3] = -self.facePosition[0]
+    _faceToWorld[1, 3] = -self.facePosition[1]
+    _faceToWorld[2, 3] = -self.facePosition[2]
+    _point_world = _faceToWorld * _point
     mat = vtk.vtkMatrix4x4()
-    mat.SetElement(0, 3, self.currentReferenceSequence[self.currentIndex][0])
-    mat.SetElement(1, 3, self.currentReferenceSequence[self.currentIndex][1])
-    mat.SetElement(2, 3, self.currentReferenceSequence[self.currentIndex][2])
+    mat.SetElement(0, 3, _point_world[0, 0])
+    mat.SetElement(1, 3, _point_world[1, 0])
+    mat.SetElement(2, 3, _point_world[2, 0])
     self.sphereTransformNode.SetMatrixTransformToParent(mat)
     self.resultLabel.text = "Now capturing index " + str(self.currentIndex) + " of " + str(len(self.currentReferenceSequence)) + "."
 
@@ -374,10 +386,12 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
     l.SetVirtualRealityConnected(1)
     l.SetVirtualRealityActive(1)
 
+    # TODO : this is only necessary if we use updateViewFromReferenceViewCamera, an alternate approach is to manually position VR camera
     # Set layout to 3D only
     slicer.app.layoutManager().setLayout(4)
     # Reset 3D view to A facing P, TODO: reset to a known view position as this method does not always return to exact same position (always same direction though)
     slicer.app.layoutManager().threeDWidget(0).threeDController().lookFromAxis(ctk.ctkAxesWidget.Anterior)
+
     # Ensure all connections are correct
     if hasattr(widget, 'viewWidget'):
       self.vrView = widget.viewWidget()
@@ -394,6 +408,7 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
       return ()
     self.vrView.mrmlVirtualRealityViewNode().SetAndObserveReferenceViewNode(slicer.app.layoutManager().threeDWidget(0).mrmlViewNode())
     # Reset VR view to ref view
+    # TODO : is this what's causing the wierd clipping?
     self.vrView.updateViewFromReferenceViewCamera()
     # Ensure transforms are updated for camera and VR controllers
     self.vrView.mrmlVirtualRealityViewNode().SetControllerTransformsUpdate(True)
@@ -459,6 +474,13 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
       setattr(self, 'cubeTransform' + name, transformNode)
       modelNode.SetAndObserveTransformNodeID(transformNode.GetID())
       transformNode.SetAndObserveTransformNodeID(self.rootCubeTransformNode.GetID())
+
+    self.cubeModelRoof.GetDisplayNode().SetColor(0.9, 0.9, 0.9) # near white
+    self.cubeModelFloor.GetDisplayNode().SetColor(0.4, 0.4, 0.4) # dark grey
+    self.cubeModelLeft.GetDisplayNode().SetColor(0.7, 0.7, 0.7)  # medium grey
+    self.cubeModelRight.GetDisplayNode().SetColor(0.7, 0.7, 0.7) # medium grey
+    self.cubeModelFront.GetDisplayNode().SetColor(0.7, 0.7, 0.7)  # medium grey
+    self.cubeModelBack.GetDisplayNode().SetColor(0.7, 0.7, 0.7)  # medium grey
 
     # Just to sort of get things close, set the face position to the HMD position
     hmdMat = vtk.vtkMatrix4x4()
