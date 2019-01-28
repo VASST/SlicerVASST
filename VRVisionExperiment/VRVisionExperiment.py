@@ -239,7 +239,7 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
     controllerNode = slicer.mrmlScene.GetNodeByID(self.needleModelNode.GetTransformNodeID())
     mat = vtk.vtkMatrix4x4()
     controllerNode.GetMatrixTransformToParent(mat)
-    self.floorHeight = mat.GetElement(1, 3)
+    self.floorHeight = mat.GetElement(2, 3)
     self.updateRoomPosition()
 
   def onFaceButton(self):
@@ -262,10 +262,9 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
     cubeMat.SetElement(0, 3, hmdMat.GetElement(0, 3))
     cubeMat.SetElement(1, 3, hmdMat.GetElement(1, 3))
     # Calculate the face position and set the floor height of the cube
-    _userFaceHeight = self.facePosition[1] - self.floorHeight
+    _userFaceHeight = self.facePosition[2] - self.floorHeight
     # cube is centered at 1m
-    _cubeHeight = _userFaceHeight - 1000
-    cubeMat.SetElement(2, 3, _cubeHeight)
+    cubeMat.SetElement(2, 3, _userFaceHeight)
     self.rootCubeTransformNode.SetMatrixTransformToParent(cubeMat)
 
   def onShowControllerCheckBox(self, newState):
@@ -289,11 +288,7 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
     # Show sphere and move to first position in currentReferenceSequence position, relative to "home" position
     self.sphereModel.GetDisplayNode().SetVisibility(1)
     self.currentIndex = 0
-    mat = vtk.vtkMatrix4x4()
-    mat.SetElement(0, 3, self.currentReferenceSequence[self.currentIndex][0])
-    mat.SetElement(1, 3, self.currentReferenceSequence[self.currentIndex][1])
-    mat.SetElement(2, 3, self.currentReferenceSequence[self.currentIndex][2])
-    self.sphereTransformNode.SetMatrixTransformToParent(mat)
+    self.onCurrentIndexChanged()
 
     # Resize capture list to the size of the reference list
     self.capturedSequence = []
@@ -318,16 +313,16 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
                          [self.currentReferenceSequence[self.currentIndex][2]],
                          [1.0]], dtype=np.float64)
     _faceToWorld = np.asmatrix(np.eye(4))
-    _faceToWorld[0, 3] = -self.facePosition[0]
-    _faceToWorld[1, 3] = -self.facePosition[1]
-    _faceToWorld[2, 3] = -self.facePosition[2]
+    _faceToWorld[0, 3] = self.facePosition[0]
+    _faceToWorld[1, 3] = self.facePosition[1]
+    _faceToWorld[2, 3] = self.facePosition[2]
     _point_world = _faceToWorld * _point
     mat = vtk.vtkMatrix4x4()
     mat.SetElement(0, 3, _point_world[0, 0])
     mat.SetElement(1, 3, _point_world[1, 0])
     mat.SetElement(2, 3, _point_world[2, 0])
     self.sphereTransformNode.SetMatrixTransformToParent(mat)
-    self.resultLabel.text = "Now capturing index " + str(self.currentIndex) + " of " + str(len(self.currentReferenceSequence)) + "."
+    self.resultLabel.text = "Now capturing index " + str(self.currentIndex+1) + " of " + str(len(self.currentReferenceSequence)) + "."
 
   def onCaptureButton(self):
     controllerNode = slicer.mrmlScene.GetNodeByID(self.needleModelNode.GetTransformNodeID())
@@ -498,7 +493,7 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
     self.startButton.enabled = isReady and not self.isStarted and len(self.facePosition) > 0 and self.floorHeight != 0.0
     self.previousButton.enabled = self.isStarted
     self.nextButton.enabled = self.isStarted
-    self.captureButton.enabled = len(self.capturedSequence) < len(self.currentReferenceSequence) and self.isStarted
+    self.captureButton.enabled = self.isStarted
     self.resetButton.enabled = len(self.capturedSequence) > 0
     self.saveButton.enabled = len(self.capturedSequence) > 0
 
@@ -536,7 +531,7 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
       return()
     else:
       self.resultLabel.text = "Motion sequence loaded " + str(len(self.motionSequence)) + " points."
-    self.onConditionIndexChanged(self.conditionComboBox.currentIndex)
+    self.updateUI()
 
   def onLoadNoMotionButton(self):
     self.nomotionSequence = []
@@ -546,7 +541,7 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
       return()
     else:
       self.resultLabel.text = "No-motion sequence loaded " + str(len(self.motionSequence)) + " points."
-    self.onConditionIndexChanged(self.conditionComboBox.currentIndex)
+    self.updateUI()
 
   def onLoadReplayButton(self):
     self.replaySequence = []
@@ -556,7 +551,7 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
       return()
     else:
       self.resultLabel.text = "Replay sequence loaded " + str(len(self.motionSequence)) + " points."
-    self.onConditionIndexChanged(self.conditionComboBox.currentIndex)
+    self.updateUI()
 
 # VRVisionExperimentLogic
 class VRVisionExperimentLogic(ScriptedLoadableModuleLogic):
