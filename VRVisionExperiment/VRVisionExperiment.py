@@ -320,7 +320,7 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
 
   def onCurrentIndexChanged(self):
     # Transform point in face coord system to world/RAS coord system
-    _point = np.asarray([[self.currentReferenceSequence[self.currentIndex][0]],
+    _point_face = np.asarray([[self.currentReferenceSequence[self.currentIndex][0]],
                          [self.currentReferenceSequence[self.currentIndex][1]],
                          [self.currentReferenceSequence[self.currentIndex][2]],
                          [1.0]], dtype=np.float64)
@@ -328,11 +328,11 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
     _faceToWorld[0, 3] = self.facePosition[0]
     _faceToWorld[1, 3] = self.facePosition[1]
     _faceToWorld[2, 3] = self.facePosition[2]
-    _point_world = _faceToWorld * _point
+    _point_world = _faceToWorld * _point_face
     mat = vtk.vtkMatrix4x4()
-    mat.SetElement(0, 3, _point_world[0, 0])
-    mat.SetElement(1, 3, _point_world[1, 0])
-    mat.SetElement(2, 3, _point_world[2, 0])
+    mat.SetElement(0, 3, _point_world[0,0])
+    mat.SetElement(1, 3, _point_world[1,0])
+    mat.SetElement(2, 3, _point_world[2,0])
     self.sphereTransformNode.SetMatrixTransformToParent(mat)
     self.resultLabel.text = "Now capturing index " + str(self.currentIndex+1) + " of " + str(len(self.currentReferenceSequence)) + "."
 
@@ -343,7 +343,13 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
     x = mat.GetElement(0, 3)
     y = mat.GetElement(1, 3)
     z = mat.GetElement(2, 3)
-    self.capturedSequence[self.currentIndex] = [ [x,y,z],self.currentReferenceSequence[self.currentIndex] ]
+    _worldToFace = np.asmatrix(np.eye(4))
+    _worldToFace[0, 3] = -self.facePosition[0]
+    _worldToFace[1, 3] = -self.facePosition[1]
+    _worldToFace[2, 3] = -self.facePosition[2]
+    _point_world = np.asarray([[x],[y],[z],[1.0]], dtype=np.float64)
+    _point_face = _worldToFace * _point_world
+    self.capturedSequence[self.currentIndex] = [ [_point_face[0,0], _point_face[1,0], _point_face[2,0]], self.currentReferenceSequence[self.currentIndex] ]
     self.updateUI()
     self.resultLabel.text = "Point for index " + str(self.currentIndex) + " collected."
 
