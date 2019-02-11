@@ -22,7 +22,7 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
   def __init__(self, parent=None):
     ScriptedLoadableModuleWidget.__init__(self, parent)
 
-    self.sphereModel = None
+    self.sphereModelNode = None
     self.needleModelNode = None
 
     self.vrView = None
@@ -73,6 +73,7 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
     self.controlGroupBox = None
     self.showControllerCheckBox = None
     self.showNeedleCheckBox = None
+    self.showSphereCheckBox = None
 
     self.resultGroupBox = None
     self.resultLabel = None
@@ -146,8 +147,10 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
     layout = qt.QFormLayout(self.controlGroupBox)
     self.showControllerCheckBox = qt.QCheckBox()
     self.showNeedleCheckBox = qt.QCheckBox()
+    self.showSphereCheckBox = qt.QCheckBox()
     layout.addRow("Show controller: ", self.showControllerCheckBox)
     layout.addRow("Show needle: ", self.showNeedleCheckBox)
+    layout.addRow("Show sphere: ", self.showSphereCheckBox)
     self.layout.addWidget(self.controlGroupBox)
 
     # Capture related buttons
@@ -187,6 +190,12 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
     layout.addWidget(self.resultLabel)
     self.layout.addWidget(self.resultGroupBox)
 
+    self.doConnect()
+
+    # Add vertical spacer
+    self.layout.addStretch(1)
+
+  def doConnect(self):
     # Connections
     self.initButton.connect('clicked(bool)', self.onInitButton)
 
@@ -199,6 +208,7 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
 
     self.showControllerCheckBox.connect('stateChanged(int)', self.onShowControllerCheckBox)
     self.showNeedleCheckBox.connect('stateChanged(int)', self.onShowNeedleCheckBox)
+    self.showSphereCheckBox.connect('stateChanged(int)', self.onShowSphereCheckBox)
 
     self.floorButton.connect('clicked(bool)', self.onFloorButton)
     self.faceButton.connect('clicked(bool)', self.onFaceButton)
@@ -206,9 +216,6 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
     self.motionSequenceButton.connect('clicked(bool)', self.onLoadMotionButton)
     self.nomotionSequenceButton.connect('clicked(bool)', self.onLoadNoMotionButton)
     self.replaySequenceButton.connect('clicked(bool)', self.onLoadReplayButton)
-
-    # Add vertical spacer
-    self.layout.addStretch(1)
 
   def safeDisconnect(self, obj, functionName, function):
     if obj is not None and hasattr(obj, "disconnect"):
@@ -226,6 +233,7 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
 
     self.safeDisconnect(self.showControllerCheckBox, 'stateChanged(int)', self.onShowControllerCheckBox)
     self.safeDisconnect(self.showNeedleCheckBox, 'stateChanged(int)', self.onShowNeedleCheckBox)
+    self.safeDisconnect(self.showSphereCheckBox, 'stateChanged(int)', self.onShowSphereCheckBox)
 
     self.safeDisconnect(self.floorButton, 'clicked(bool)', self.onFloorButton)
     self.safeDisconnect(self.faceButton, 'clicked(bool)', self.onFaceButton)
@@ -273,6 +281,9 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
   def onShowNeedleCheckBox(self, newState):
     self.needleModelNode.GetDisplayNode().SetVisibility(newState)
 
+  def onShowSphereCheckBox(self, newState):
+    self.sphereModelNode.GetDisplayNode().SetVisibility(newState)
+
   def onStartButton(self):# Update the current sequence with the desired sequence
     self.currentReferenceSequence = []
     if self.conditionComboBox.currentText == "Motion":
@@ -286,7 +297,8 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
       return()
 
     # Show sphere and move to first position in currentReferenceSequence position, relative to "home" position
-    self.sphereModel.GetDisplayNode().SetVisibility(1)
+    self.showSphereCheckBox.checked = True
+    self.sphereModelNode.GetDisplayNode().SetVisibility(True)
     self.currentIndex = 0
     self.onCurrentIndexChanged()
 
@@ -353,7 +365,8 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
 
   def onResetButton(self):
     self.isStarted = False
-    self.sphereModel.GetDisplayNode().SetVisibility(False)
+    self.showSphereCheckBox.checked = False
+    self.sphereModelNode.GetDisplayNode().SetVisibility(False)
     self.updateUI()
     self.resultLabel.text = "Capture cleared."
 
@@ -383,9 +396,9 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
 
     # TODO : this is only necessary if we use updateViewFromReferenceViewCamera, an alternate approach is to manually position VR camera
     # Set layout to 3D only
-    slicer.app.layoutManager().setLayout(4)
+    #slicer.app.layoutManager().setLayout(4)
     # Reset 3D view to A facing P, TODO: reset to a known view position as this method does not always return to exact same position (always same direction though)
-    slicer.app.layoutManager().threeDWidget(0).threeDController().lookFromAxis(ctk.ctkAxesWidget.Anterior)
+    #slicer.app.layoutManager().threeDWidget(0).threeDController().lookFromAxis(ctk.ctkAxesWidget.Anterior)
 
     # Ensure all connections are correct
     if hasattr(widget, 'viewWidget'):
@@ -403,8 +416,6 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
       return ()
     self.vrView.mrmlVirtualRealityViewNode().SetAndObserveReferenceViewNode(slicer.app.layoutManager().threeDWidget(0).mrmlViewNode())
     # Reset VR view to ref view
-    # TODO : is this what's causing the wierd clipping?
-    self.vrView.updateViewFromReferenceViewCamera()
     # Ensure transforms are updated for camera and VR controllers
     self.vrView.mrmlVirtualRealityViewNode().SetControllerTransformsUpdate(True)
     self.vrView.mrmlVirtualRealityViewNode().SetHMDTransformUpdate(True)
@@ -416,6 +427,10 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
     self.vrView.mrmlVirtualRealityViewNode().SetMagnification(1.0)
     # Disable interactor
     self.vrView.renderWindow().SetInteractor(None)
+    # Reset clipping
+    phyToWorl = vtk.vtkMatrix4x4()
+    self.vrView.renderWindow().SetPhysicalToWorldMatrix(phyToWorl)
+
 
     # Give Slicer some time to update all the various things we just changed
     qt.QTimer.singleShot(5, self.onFinishInitButton)
@@ -423,15 +438,15 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
   def onFinishInitButton(self):
     # Create sphere and parent transform, hide for now
     filename = os.path.join(os.path.dirname(slicer.modules.vrvisionexperiment.path), 'Resources/Models/sphere.stl')
-    success, self.sphereModel = slicer.util.loadModel(filename, True)
+    success, self.sphereModelNode = slicer.util.loadModel(filename, True)
     if not success:
       self.error("Unable to load sphere model. Is module installed correctly?")
       return()
-    self.sphereModel.GetDisplayNode().SetVisibility(False)
+    self.sphereModelNode.GetDisplayNode().SetVisibility(False)
     self.sphereTransformNode = slicer.vtkMRMLLinearTransformNode()
     slicer.mrmlScene.AddNode(self.sphereTransformNode)
     self.sphereTransformNode.SetName("SpherePose")
-    self.sphereModel.SetAndObserveTransformNodeID(self.sphereTransformNode.GetID())
+    self.sphereModelNode.SetAndObserveTransformNodeID(self.sphereTransformNode.GetID())
 
     # Create needle model and parent transform
     filename = os.path.join(os.path.dirname(slicer.modules.vrvisionexperiment.path), 'Resources/Models/needle.stl')
