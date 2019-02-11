@@ -410,7 +410,7 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
 
     # Set layout to 3D only
     slicer.app.layoutManager().setLayout(4)
-    # Reset 3D view to A facing P, TODO: reset to a known view position as this method does not always return to exact same position (always same direction though)
+    # Reset 3D view to A facing P
     slicer.app.layoutManager().threeDWidget(0).threeDController().lookFromAxis(ctk.ctkAxesWidget.Anterior)
 
     # Ensure all connections are correct
