@@ -394,11 +394,10 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
     l.SetVirtualRealityConnected(1)
     l.SetVirtualRealityActive(1)
 
-    # TODO : this is only necessary if we use updateViewFromReferenceViewCamera, an alternate approach is to manually position VR camera
     # Set layout to 3D only
-    #slicer.app.layoutManager().setLayout(4)
+    slicer.app.layoutManager().setLayout(4)
     # Reset 3D view to A facing P, TODO: reset to a known view position as this method does not always return to exact same position (always same direction though)
-    #slicer.app.layoutManager().threeDWidget(0).threeDController().lookFromAxis(ctk.ctkAxesWidget.Anterior)
+    slicer.app.layoutManager().threeDWidget(0).threeDController().lookFromAxis(ctk.ctkAxesWidget.Anterior)
 
     # Ensure all connections are correct
     if hasattr(widget, 'viewWidget'):
@@ -414,8 +413,11 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
     if self.vrView.mrmlVirtualRealityViewNode() is None:
       self.error("VR is not running in Slicer. Please click the VR button in the quickbar, or use the VR module to start VR.")
       return ()
-    self.vrView.mrmlVirtualRealityViewNode().SetAndObserveReferenceViewNode(slicer.app.layoutManager().threeDWidget(0).mrmlViewNode())
+
     # Reset VR view to ref view
+    self.vrView.mrmlVirtualRealityViewNode().SetAndObserveReferenceViewNode(slicer.app.layoutManager().threeDWidget(0).mrmlViewNode())
+    self.vrView.updateViewFromReferenceViewCamera()
+
     # Ensure transforms are updated for camera and VR controllers
     self.vrView.mrmlVirtualRealityViewNode().SetControllerTransformsUpdate(True)
     self.vrView.mrmlVirtualRealityViewNode().SetHMDTransformUpdate(True)
@@ -427,10 +429,6 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
     self.vrView.mrmlVirtualRealityViewNode().SetMagnification(1.0)
     # Disable interactor
     self.vrView.renderWindow().SetInteractor(None)
-    # Reset clipping
-    phyToWorl = vtk.vtkMatrix4x4()
-    self.vrView.renderWindow().SetPhysicalToWorldMatrix(phyToWorl)
-
 
     # Give Slicer some time to update all the various things we just changed
     qt.QTimer.singleShot(5, self.onFinishInitButton)
@@ -497,6 +495,9 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
     self.vrView.mrmlVirtualRealityViewNode().GetHMDTransformNode().GetMatrixTransformToParent(hmdMat)
     self.facePosition = [hmdMat.GetElement(0, 3), hmdMat.GetElement(1, 3), hmdMat.GetElement(2, 3)]
     self.updateRoomPosition()
+
+    # Reset clipping
+    self.vrView.renderWindow().GetRenderers().GetFirstRenderer().GetActiveCamera().SetClippingRange(0.1, 100000)
 
     self.isInit = True
     self.updateUI()
