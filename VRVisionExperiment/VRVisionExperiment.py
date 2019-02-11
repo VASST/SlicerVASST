@@ -48,13 +48,14 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
     self.isStarted = False
 
     self.initButton = None
-
     self.startButton = None
     self.previousButton = None
     self.nextButton = None
     self.captureButton = None
     self.saveButton = None
     self.resetButton = None
+
+    self.captureTimer = qt.QElapsedTimer()
 
     self.participantIdLineEdit = None
     self.inputsGroupBox = None
@@ -166,7 +167,7 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
     self.nextButton = qt.QPushButton("Next")
     self.nextButton.toolTip = "Capture next point."
     self.nextButton.enabled = False
-    self.captureButton = qt.QPushButton("Capture")
+    self.captureButton = qt.QPushButton("Go!")
     self.captureButton.toolTip = "Capture a data point."
     self.captureButton.enabled = False
     self.saveButton = qt.QPushButton("Save")
@@ -337,21 +338,27 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
     self.resultLabel.text = "Now capturing index " + str(self.currentIndex+1) + " of " + str(len(self.currentReferenceSequence)) + "."
 
   def onCaptureButton(self):
-    controllerNode = slicer.mrmlScene.GetNodeByID(self.needleModelNode.GetTransformNodeID())
-    mat = vtk.vtkMatrix4x4()
-    controllerNode.GetMatrixTransformToParent(mat)
-    x = mat.GetElement(0, 3)
-    y = mat.GetElement(1, 3)
-    z = mat.GetElement(2, 3)
-    _worldToFace = np.asmatrix(np.eye(4))
-    _worldToFace[0, 3] = -self.facePosition[0]
-    _worldToFace[1, 3] = -self.facePosition[1]
-    _worldToFace[2, 3] = -self.facePosition[2]
-    _point_world = np.asarray([[x],[y],[z],[1.0]], dtype=np.float64)
-    _point_face = _worldToFace * _point_world
-    self.capturedSequence[self.currentIndex] = [ [_point_face[0,0], _point_face[1,0], _point_face[2,0]], self.currentReferenceSequence[self.currentIndex] ]
-    self.updateUI()
-    self.resultLabel.text = "Point for index " + str(self.currentIndex) + " collected."
+    if self.captureButton.text == "Go!":
+      self.captureTimer.start()
+      self.captureButton.text = "Capture"
+    else:
+      timeElapsed = self.captureTimer.elapsed()
+      self.captureButton.text = "Go!"
+      controllerNode = slicer.mrmlScene.GetNodeByID(self.needleModelNode.GetTransformNodeID())
+      mat = vtk.vtkMatrix4x4()
+      controllerNode.GetMatrixTransformToParent(mat)
+      x = mat.GetElement(0, 3)
+      y = mat.GetElement(1, 3)
+      z = mat.GetElement(2, 3)
+      _worldToFace = np.asmatrix(np.eye(4))
+      _worldToFace[0, 3] = -self.facePosition[0]
+      _worldToFace[1, 3] = -self.facePosition[1]
+      _worldToFace[2, 3] = -self.facePosition[2]
+      _point_world = np.asarray([[x],[y],[z],[1.0]], dtype=np.float64)
+      _point_face = _worldToFace * _point_world
+      self.capturedSequence[self.currentIndex] = [ [_point_face[0,0], _point_face[1,0], _point_face[2,0]], self.currentReferenceSequence[self.currentIndex], timeElapsed ]
+      self.updateUI()
+      self.resultLabel.text = "Point for index " + str(self.currentIndex) + " collected."
 
   def onSaveButton(self):
     # Build filename string
@@ -362,9 +369,9 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
       return()
 
     with open(filename, 'w') as f:
-      f.write("#cap_x, cap_y, cap_z, ref_x, ref_y, ref_z\n")
+      f.write("#cap_x, cap_y, cap_z, ref_x, ref_y, ref_z, elapsed_time\n")
       for cap in self.capturedSequence:
-        f.write(str(cap[0][0]) + "," + str(cap[0][1]) + "," + str(cap[0][2]) + "," + str(cap[1][0]) + "," + str(cap[1][1]) + "," + str(cap[1][2]) + "\n")
+        f.write(str(cap[0][0]) + "," + str(cap[0][1]) + "," + str(cap[0][2]) + "," + str(cap[1][0]) + "," + str(cap[1][1]) + "," + str(cap[1][2]) + "," + str(cap[2]) + "\n")
 
     self.onResetButton()
     self.resultLabel.text = "File saved. Capture cleared."
@@ -385,6 +392,7 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
     slicer.mrmlScene.Clear()
     self.currentReferenceSequence = []
     self.capturedSequence = []
+    self.captureButton.text = "Go!"
 
     # Ensure VR module has been created
     if slicer.modules.virtualreality is None:
