@@ -263,17 +263,15 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
     self.updateRoomPosition()
 
   def updateRoomPosition(self):
-    # Update cube root position so that the room is centered about the headset, 0.6m below the headset
+    # Update cube root position so that the room is centered about the headset
     cubeMat = vtk.vtkMatrix4x4()
     self.rootCubeTransformNode.GetMatrixTransformToParent(cubeMat)
     hmdMat = vtk.vtkMatrix4x4()
     self.vrView.mrmlVirtualRealityViewNode().GetHMDTransformNode().GetMatrixTransformToParent(hmdMat)
     cubeMat.SetElement(0, 3, hmdMat.GetElement(0, 3))
     cubeMat.SetElement(1, 3, hmdMat.GetElement(1, 3))
-    # Calculate the face position and set the floor height of the cube
-    _userFaceHeight = self.facePosition[2] - self.floorHeight
-    # cube is centered at 1m
-    cubeMat.SetElement(2, 3, _userFaceHeight)
+    # Calculate the height of the cube as 1m off the floor (cube is 2m, centered at 1m)
+    cubeMat.SetElement(2, 3, self.floorHeight + 1000.0)
     self.rootCubeTransformNode.SetMatrixTransformToParent(cubeMat)
 
   def onShowControllerCheckBox(self, newState):
