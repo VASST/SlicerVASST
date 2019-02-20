@@ -244,12 +244,13 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
     self.safeDisconnect(self.replaySequenceButton, 'clicked(bool)', self.onLoadReplayButton)
 
   def onFloorButton(self):
-    # Record current Y position of controller as floor
+    # Record current Z position of controller as floor
     controllerNode = slicer.mrmlScene.GetNodeByID(self.needleModelNode.GetTransformNodeID())
     mat = vtk.vtkMatrix4x4()
     controllerNode.GetMatrixTransformToParent(mat)
     self.floorHeight = mat.GetElement(2, 3)
     self.updateRoomPosition()
+    self.resultLabel.text = "Floor position detected as " + str(self.floorHeight) + "."
 
   def onFaceButton(self):
     # Record current position of controller as the face
@@ -261,6 +262,7 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
     z = mat.GetElement(2, 3)
     self.facePosition = [x,y,z]
     self.updateRoomPosition()
+    self.resultLabel.text = "Face position detected as " + str(x) + ", " + str(y) + ", " + str(z) + "."
 
   def updateRoomPosition(self):
     # Update cube root position so that the room is centered about the headset
@@ -371,11 +373,12 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
       for cap in self.capturedSequence:
         f.write(str(cap[0][0]) + "," + str(cap[0][1]) + "," + str(cap[0][2]) + "," + str(cap[1][0]) + "," + str(cap[1][1]) + "," + str(cap[1][2]) + "," + str(cap[2]) + "\n")
 
-    self.onResetButton()
-    self.resultLabel.text = "File saved. Capture cleared."
+    self.updateUI()
+    self.resultLabel.text = "File saved."
 
   def onResetButton(self):
     self.isStarted = False
+    self.capturedSequence = []
     self.showSphereCheckBox.checked = False
     self.sphereModelNode.GetDisplayNode().SetVisibility(False)
     self.updateUI()
@@ -513,7 +516,7 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
 
     self.isInit = True
     self.updateUI()
-    self.resultLabel.text = "Reset."
+    self.resultLabel.text = "Initialization finished."
 
   def updateUI(self):
     isReady = len(self.motionSequence) > 0 and len(self.nomotionSequence) > 0 and len(self.replaySequence) > 0 and self.isInit
