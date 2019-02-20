@@ -356,7 +356,7 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
       _point_face = _worldToFace * _point_world
       self.capturedSequence[self.currentIndex] = [ [_point_face[0,0], _point_face[1,0], _point_face[2,0]], self.currentReferenceSequence[self.currentIndex], timeElapsed ]
       self.updateUI()
-      self.resultLabel.text = "Point for index " + str(self.currentIndex) + " collected."
+      self.resultLabel.text = "Point for index " + str(self.currentIndex+1) + " collected."
 
   def onSaveButton(self):
     # Build filename string
