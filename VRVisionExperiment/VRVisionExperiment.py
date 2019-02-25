@@ -126,6 +126,7 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
     self.conditionComboBox.addItem("Replay")
     self.trialNumberSpinBox = qt.QSpinBox()
     self.trialNumberSpinBox.setValue(1)
+    self.trialNumberSpinBox.setSingleStep(1)
     self.trialNumberSpinBox.setMinimum(1)
     layout.addRow("Participant ID:", self.participantIdLineEdit)
     layout.addRow("Condition:", self.conditionComboBox)
@@ -340,6 +341,16 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
   def onCaptureButton(self):
     if self.captureButton.text == "Go!":
       self.captureTimer.start()
+      # TODO: reset sequence details and start recording
+      #>>> sb = slicer.vtkMRMLSequenceBrowserNode()
+      #>>> slicer.mrmlScene.AddNode(sb)
+      #>>> t = getNode('LinearTransform_3')
+      #>>> seq = slicer.vtkMRMLSequenceNode()
+      #>>> slicer.mrmlScene.AddNode(seq)
+      #>>> seq.AddDefaultStorageNode()
+      #>>> l = slicer.modules.sequencebrowser.logic()
+      #>>> sb.SetRecording(seq, 1)
+      #>>> l.AddSynchronizedNode(seq, t, sb)
       self.captureButton.text = "Capture"
     else:
       timeElapsed = self.captureTimer.elapsed()
@@ -382,6 +393,7 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
     self.showSphereCheckBox.checked = False
     self.sphereModelNode.GetDisplayNode().SetVisibility(False)
     self.updateUI()
+    self.trialNumberSpinBox.stepUp()
     self.resultLabel.text = "Capture cleared."
 
   def onInitButton(self):
