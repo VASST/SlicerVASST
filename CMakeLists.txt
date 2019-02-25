@@ -5,13 +5,14 @@ project(SlicerVASST)
 #-----------------------------------------------------------------------------
 # Extension meta-information
 set(EXTENSION_HOMEPAGE "https://github.com/VASST/SlicerVASST")
-set(EXTENSION_CATEGORY "Registration;Segmentation;Visualization")
+set(EXTENSION_CATEGORY "IGT")
 set(EXTENSION_CONTRIBUTORS "Adam Rankin (Robarts Research Institute), Golafsoun Ameri (Robarts Research Institute), Elvis Chen (Robarts Research Institute)")
 set(EXTENSION_DESCRIPTION "This extension contains a number of modules developed by the VASST laboratory at the Robarts Research Institute. It provides access to RobartsVTK, a library for visualization and image processing.")
 set(EXTENSION_ICONURL "https://raw.githubusercontent.com/VASST/SlicerVASST/master/docs/images/SlicerVASST_logo.png")
 set(EXTENSION_SCREENSHOTURLS "https://raw.githubusercontent.com/VASST/SlicerVASST/master/docs/images/screenshot.png")
 set(EXTENSION_DEPENDS "VASSTAlgorithms;SlicerIGT;SlicerVirtualReality;Sequences")
 set(EXTENSION_BUILD_SUBDIRECTORY inner-build)
+set(EXTENSION_STATUS "Stable")
 
 set(SUPERBUILD_TOPLEVEL_PROJECT inner)
 
