@@ -90,6 +90,21 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
     self.floorHeight = 0.0
     self.facePosition = []
 
+    # Set up sequence infrastructure for path recording
+    self.sequenceBrowserNode = slicer.vtkMRMLSequenceBrowserNode()
+    slicer.mrmlScene.AddNode(self.sequenceBrowserNode)
+    self.sequenceBrowserNode.SetName('VRVisionPathsBrowser')
+
+    self.toolSequenceNode = slicer.vtkMRMLSequenceNode()
+    slicer.mrmlScene.AddNode(self.toolSequenceNode)
+    self.toolSequenceNode.SetName('ControllerPathSequence')
+    self.toolSequenceNode.AddDefaultStorageNode()
+
+    self.hmdSequenceNode = slicer.vtkMRMLSequenceNode()
+    slicer.mrmlScene.AddNode(self.hmdSequenceNode)
+    self.hmdSequenceNode.SetName('HMDPathSequence')
+    self.hmdSequenceNode.AddDefaultStorageNode()
+
   def setup(self):
     ScriptedLoadableModuleWidget.setup(self)
 
@@ -341,19 +356,13 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
   def onCaptureButton(self):
     if self.captureButton.text == "Go!":
       self.captureTimer.start()
-      # TODO: reset sequence details and start recording
-      #>>> sb = slicer.vtkMRMLSequenceBrowserNode()
-      #>>> slicer.mrmlScene.AddNode(sb)
-      #>>> t = getNode('LinearTransform_3')
-      #>>> seq = slicer.vtkMRMLSequenceNode()
-      #>>> slicer.mrmlScene.AddNode(seq)
-      #>>> seq.AddDefaultStorageNode()
-      #>>> l = slicer.modules.sequencebrowser.logic()
-      #>>> sb.SetRecording(seq, 1)
-      #>>> l.AddSynchronizedNode(seq, t, sb)
       self.captureButton.text = "Capture"
+      self.toolSequenceNode.RemoveAllDataNodes()
+      self.hmdSequenceNode.RemoveAllDataNodes()
+      self.sequenceBrowserNode.RecordingActiveOn()
     else:
       timeElapsed = self.captureTimer.elapsed()
+      self.sequenceBrowserNode.RecordingActiveOff()
       self.captureButton.text = "Go!"
       controllerNode = slicer.mrmlScene.GetNodeByID(self.needleModelNode.GetTransformNodeID())
       mat = vtk.vtkMatrix4x4()
@@ -384,8 +393,20 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
       for cap in self.capturedSequence:
         f.write(str(cap[0][0]) + "," + str(cap[0][1]) + "," + str(cap[0][2]) + "," + str(cap[1][0]) + "," + str(cap[1][1]) + "," + str(cap[1][2]) + "," + str(cap[2]) + "\n")
 
+    # TODO: save sequences in one file
+    # For now, save into two files, _controller and _hmd
+    file_root = os.path.basename(filename)
+    file_root_no_ext = file_root[:file_root.index('.')]
+    result = slicer.util.saveNode(self.toolSequenceNode, os.path.dirname(filename) + '\\' + file_root_no_ext + '_controller.seq.mha')
+    if not result:
+      self.error("Unable to save controller path file. Please see Slicer error log.")
+      return()
+    result = slicer.util.saveNode(self.hmdSequenceNode, os.path.dirname(filename) + '\\' + file_root_no_ext + '_hmd.seq.mha')
+    if not result:
+      self.error("Unable to save hmd path file. Please see Slicer error log.")
+      return()
     self.updateUI()
-    self.resultLabel.text = "File saved."
+    self.resultLabel.text = "Files saved."
 
   def onResetButton(self):
     self.isStarted = False
@@ -487,6 +508,13 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
         return()
     self.needleModelNode.SetAndObserveTransformNodeID(controllerNode.GetID())
     self.showNeedleCheckBox.checked = True
+
+    # Set sequence proxy nodes
+    l = slicer.modules.sequencebrowser.logic()
+    l.AddSynchronizedNode(self.toolSequenceNode, controllerNode, self.sequenceBrowserNode)
+    self.sequenceBrowserNode.SetRecording(self.toolSequenceNode, True)
+    l.AddSynchronizedNode(self.hmdSequenceNode, self.vrView.mrmlVirtualRealityViewNode().GetHMDTransformNode(), self.sequenceBrowserNode)
+    self.sequenceBrowserNode.SetRecording(self.hmdSequenceNode, True)
 
     # Create room
     # Create parent transform to easily translate the room to the user's current position
