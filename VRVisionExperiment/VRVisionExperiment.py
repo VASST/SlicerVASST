@@ -4,6 +4,7 @@ import vtk, qt, ctk, slicer
 from slicer.ScriptedLoadableModule import *
 import numpy as np
 import logging
+import tempfile
 
 # VRVisionExperiment
 class VRVisionExperiment(ScriptedLoadableModule):
@@ -89,6 +90,8 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
 
     self.floorHeight = 0.0
     self.facePosition = []
+
+    self.savedSequenceFiles = []
 
   def setup(self):
     ScriptedLoadableModuleWidget.setup(self)
@@ -308,6 +311,7 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
     self.capturedSequence = []
     for i in range(0, len(self.currentReferenceSequence)):
       self.capturedSequence.append([0,0,0])
+    self.savedSequenceFiles = []
 
     self.isStarted = True
     self.updateUI()
@@ -348,6 +352,21 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
     else:
       timeElapsed = self.captureTimer.elapsed()
       self.sequenceBrowserNode.RecordingActiveOff()
+
+      # Save sequences for this point into a temporary filename
+      # For now, save into two files, _controller and _hmd
+      proto_filename = os.path.join(tempfile.tempdir, "participant" + self.participantIdLineEdit.text + "_trial" + str(self.trialNumberSpinBox.value) + "_" + self.conditionComboBox.currentText)
+      result = slicer.util.saveNode(self.toolSequenceNode, proto_filename + '_controller.seq.mha')
+      if not result:
+        self.error("Unable to save controller path file. Please see Slicer error log.")
+      else:
+        self.savedSequenceFiles.append(proto_filename + '_controller.seq.mha')
+      result = slicer.util.saveNode(self.hmdSequenceNode, proto_filename + '_hmd.seq.mha')
+      if not result:
+        self.error("Unable to save hmd path file. Please see Slicer error log.")
+      else:
+        self.savedSequenceFiles.append(proto_filename + '_hmd.seq.mha')
+
       self.captureButton.text = "Go!"
       controllerNode = slicer.mrmlScene.GetNodeByID(self.needleModelNode.GetTransformNodeID())
       mat = vtk.vtkMatrix4x4()
@@ -378,24 +397,22 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
       for cap in self.capturedSequence:
         f.write(str(cap[0][0]) + "," + str(cap[0][1]) + "," + str(cap[0][2]) + "," + str(cap[1][0]) + "," + str(cap[1][1]) + "," + str(cap[1][2]) + "," + str(cap[2]) + "\n")
 
-    # TODO: save sequences in one file
-    # For now, save into two files, _controller and _hmd
+    # Rename all sequence files according to naming convention
     file_root = os.path.basename(filename)
     file_root_no_ext = file_root[:file_root.index('.')]
-    result = slicer.util.saveNode(self.toolSequenceNode, os.path.dirname(filename) + '\\' + file_root_no_ext + '_controller.seq.mha')
-    if not result:
-      self.error("Unable to save controller path file. Please see Slicer error log.")
-      return()
-    result = slicer.util.saveNode(self.hmdSequenceNode, os.path.dirname(filename) + '\\' + file_root_no_ext + '_hmd.seq.mha')
-    if not result:
-      self.error("Unable to save hmd path file. Please see Slicer error log.")
-      return()
+    for filename in self.savedSequenceFiles:
+      if "_controller" in filename:
+        os.rename(filename, os.path.join(os.path.dirname(filename), file_root_no_ext + '_controller.seq.mha'))
+      else:
+        os.rename(filename, os.path.join(os.path.dirname(filename). file_root_no_ext + '_hmd.seq.mha'))
+
     self.updateUI()
     self.resultLabel.text = "Files saved."
 
   def onResetButton(self):
     self.isStarted = False
     self.capturedSequence = []
+    self.savedSequenceFiles = []
     self.showSphereCheckBox.setChecked(False)
     self.sphereModelNode.GetDisplayNode().SetVisibility(False)
     self.updateUI()
@@ -411,6 +428,7 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
     slicer.mrmlScene.Clear()
     self.currentReferenceSequence = []
     self.capturedSequence = []
+    self.savedSequenceFiles = []
     self.captureButton.text = "Go!"
 
     # Ensure VR module has been created
