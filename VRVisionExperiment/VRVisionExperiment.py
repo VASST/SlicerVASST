@@ -90,21 +90,6 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
     self.floorHeight = 0.0
     self.facePosition = []
 
-    # Set up sequence infrastructure for path recording
-    self.sequenceBrowserNode = slicer.vtkMRMLSequenceBrowserNode()
-    slicer.mrmlScene.AddNode(self.sequenceBrowserNode)
-    self.sequenceBrowserNode.SetName('VRVisionPathsBrowser')
-
-    self.toolSequenceNode = slicer.vtkMRMLSequenceNode()
-    slicer.mrmlScene.AddNode(self.toolSequenceNode)
-    self.toolSequenceNode.SetName('ControllerPathSequence')
-    self.toolSequenceNode.AddDefaultStorageNode()
-
-    self.hmdSequenceNode = slicer.vtkMRMLSequenceNode()
-    slicer.mrmlScene.AddNode(self.hmdSequenceNode)
-    self.hmdSequenceNode.SetName('HMDPathSequence')
-    self.hmdSequenceNode.AddDefaultStorageNode()
-
   def setup(self):
     ScriptedLoadableModuleWidget.setup(self)
 
@@ -314,7 +299,7 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
       return()
 
     # Show sphere and move to first position in currentReferenceSequence position, relative to "home" position
-    self.showSphereCheckBox.checked = True
+    self.showSphereCheckBox.setChecked(True)
     self.sphereModelNode.GetDisplayNode().SetVisibility(True)
     self.currentIndex = 0
     self.onCurrentIndexChanged()
@@ -411,7 +396,7 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
   def onResetButton(self):
     self.isStarted = False
     self.capturedSequence = []
-    self.showSphereCheckBox.checked = False
+    self.showSphereCheckBox.setChecked(False)
     self.sphereModelNode.GetDisplayNode().SetVisibility(False)
     self.updateUI()
     self.trialNumberSpinBox.stepUp()
@@ -470,13 +455,28 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
     self.vrView.mrmlVirtualRealityViewNode().SetControllerTransformsUpdate(True)
     self.vrView.mrmlVirtualRealityViewNode().SetHMDTransformUpdate(True)
     # Hide trackers and controllers
-    self.showControllerCheckBox.checked = False
+    self.showControllerCheckBox.setChecked(False)
     self.vrView.mrmlVirtualRealityViewNode().SetControllerModelsVisible(False)
     self.vrView.mrmlVirtualRealityViewNode().SetTrackerReferenceModelsVisible(False)
     # Set the RAStoPhysical magnification to 1x
     self.vrView.mrmlVirtualRealityViewNode().SetMagnification(1.0)
     # Disable interactor
     self.vrView.renderWindow().SetInteractor(None)
+
+    # Set up sequence infrastructure for path recording
+    self.sequenceBrowserNode = slicer.vtkMRMLSequenceBrowserNode()
+    slicer.mrmlScene.AddNode(self.sequenceBrowserNode)
+    self.sequenceBrowserNode.SetName('VRVisionPathsBrowser')
+
+    self.toolSequenceNode = slicer.vtkMRMLSequenceNode()
+    slicer.mrmlScene.AddNode(self.toolSequenceNode)
+    self.toolSequenceNode.SetName('ControllerPathSequence')
+    self.toolSequenceNode.AddDefaultStorageNode()
+
+    self.hmdSequenceNode = slicer.vtkMRMLSequenceNode()
+    slicer.mrmlScene.AddNode(self.hmdSequenceNode)
+    self.hmdSequenceNode.SetName('HMDPathSequence')
+    self.hmdSequenceNode.AddDefaultStorageNode()
 
     # Give Slicer some time to update all the various things we just changed
     qt.QTimer.singleShot(5, self.onFinishInitButton)
@@ -507,7 +507,7 @@ class VRVisionExperimentWidget(ScriptedLoadableModuleWidget):
         self.error("Unable to find controller transform, is one of the controllers turned on and detected?")
         return()
     self.needleModelNode.SetAndObserveTransformNodeID(controllerNode.GetID())
-    self.showNeedleCheckBox.checked = True
+    self.showNeedleCheckBox.setChecked(True)
 
     # Set sequence proxy nodes
     l = slicer.modules.sequencebrowser.logic()
