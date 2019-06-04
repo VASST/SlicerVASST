@@ -22,6 +22,7 @@ include(${Slicer_USE_FILE})
 # Extension modules
 add_subdirectory(GuidedUSCal)
 add_subdirectory(VRVisionExperiment)
+add_subdirectory(LeapCalibration)
 ## NEXT_MODULE
 
 #-----------------------------------------------------------------------------
