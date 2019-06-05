@@ -1,13 +1,15 @@
 project(vtkSlicer${MODULE_NAME}ModuleLogic)
 
 #-----------------------------------------------------------------------------
-find_package(SlicerOpenCV REQUIRED NO_MODULE)
+find_package(VASSTAlgorithms REQUIRED NO_MODULE)
 
 set(KIT ${PROJECT_NAME})
 
 set(${KIT}_EXPORT_DIRECTIVE "VTK_SLICER_${MODULE_NAME_UPPER}_MODULE_LOGIC_EXPORT")
 
 set(${KIT}_INCLUDE_DIRECTORIES
+  ${vtkSlicerPointToLineRegistrationModuleLogic_INCLUDE_DIRS}
+  ${vtkSlicerVideoCamerasModuleMRML_INCLUDE_DIRS}
   )
 
 set(${KIT}_SRCS
@@ -16,7 +18,10 @@ set(${KIT}_SRCS
   )
 
 set(${KIT}_TARGET_LIBRARIES
-  ${ITK_LIBRARIES}
+  opencv_imgproc
+  opencv_videoio
+  vtkSlicerPointToLineRegistrationModuleLogic
+  vtkSlicerVideoCamerasModuleMRML
   )
 
 #-----------------------------------------------------------------------------

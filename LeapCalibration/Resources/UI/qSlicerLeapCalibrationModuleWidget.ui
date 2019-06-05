@@ -2,6 +2,14 @@
 <ui version="4.0">
  <class>qSlicerLeapCalibrationModuleWidget</class>
  <widget class="qSlicerWidget" name="qSlicerLeapCalibrationModuleWidget">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>284</width>
+    <height>291</height>
+   </rect>
+  </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>
@@ -12,7 +20,43 @@
       <string>Inputs</string>
      </property>
      <layout class="QFormLayout" name="formLayout">
-      <item row="1" column="1">
+      <item row="2" column="0">
+       <widget class="QLabel" name="Label_Baseline">
+        <property name="text">
+         <string>Leap Baseline:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <widget class="QDoubleSpinBox" name="DoubleSpinBox_Baseline">
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+        <property name="buttonSymbols">
+         <enum>QAbstractSpinBox::NoButtons</enum>
+        </property>
+        <property name="suffix">
+         <string>mm</string>
+        </property>
+        <property name="maximum">
+         <double>400.000000000000000</double>
+        </property>
+        <property name="singleStep">
+         <double>0.100000000000000</double>
+        </property>
+        <property name="value">
+         <double>40.000000000000000</double>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="0">
+       <widget class="QLabel" name="Label_LeftImage">
+        <property name="text">
+         <string>Left Image:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="1">
        <widget class="qMRMLNodeComboBox" name="MRMLNodeComboBox_LeftImage">
         <property name="nodeTypes">
          <stringlist>
@@ -36,21 +80,14 @@
         </property>
        </widget>
       </item>
-      <item row="1" column="0">
-       <widget class="QLabel" name="Label_LeftImage">
-        <property name="text">
-         <string>Left image:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="0">
+      <item row="5" column="0">
        <widget class="QLabel" name="Label_RightImage">
         <property name="text">
          <string>Right Image:</string>
         </property>
        </widget>
       </item>
-      <item row="2" column="1">
+      <item row="5" column="1">
        <widget class="qMRMLNodeComboBox" name="MRMLNodeComboBox_RightImage">
         <property name="nodeTypes">
          <stringlist>
@@ -74,47 +111,49 @@
         </property>
        </widget>
       </item>
-      <item row="0" column="0">
-       <widget class="QLabel" name="Label_Baseline">
+      <item row="6" column="0">
+       <widget class="QLabel" name="Label_TipToHMDTransform">
         <property name="text">
-         <string>Leap Baseline:</string>
+         <string>TipToHMD Transform:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="6" column="1">
+       <widget class="qMRMLNodeComboBox" name="MRMLNodeComboBox_TipToHMDTransform">
+        <property name="nodeTypes">
+         <stringlist>
+          <string>vtkMRMLLinearTransformNode</string>
+         </stringlist>
+        </property>
+        <property name="noneEnabled">
+         <bool>true</bool>
+        </property>
+        <property name="addEnabled">
+         <bool>false</bool>
+        </property>
+        <property name="removeEnabled">
+         <bool>false</bool>
+        </property>
+        <property name="renameEnabled">
+         <bool>true</bool>
+        </property>
+        <property name="selectNodeUponCreation">
+         <bool>false</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="0">
+       <widget class="QLabel" name="Label_LeftCamera">
+        <property name="text">
+         <string>Left Camera:</string>
         </property>
        </widget>
       </item>
       <item row="0" column="1">
-       <widget class="QDoubleSpinBox" name="DoubleSpinBox_Baseline">
-        <property name="alignment">
-         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-        </property>
-        <property name="buttonSymbols">
-         <enum>QAbstractSpinBox::NoButtons</enum>
-        </property>
-        <property name="suffix">
-         <string>mm</string>
-        </property>
-        <property name="maximum">
-         <double>400.000000000000000</double>
-        </property>
-        <property name="singleStep">
-         <double>0.100000000000000</double>
-        </property>
-        <property name="value">
-         <double>40.000000000000000</double>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="0">
-       <widget class="QLabel" name="Label_HMDTransform">
-        <property name="text">
-         <string>HMD Transform:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="1">
-       <widget class="qMRMLNodeComboBox" name="MRMLNodeComboBox_HMDTransform">
+       <widget class="qMRMLNodeComboBox" name="MRMLNodeComboBox_LeftCamera">
         <property name="nodeTypes">
          <stringlist>
-          <string>vtkMRMLLinearTransformNode</string>
+          <string>vtkMRMLVideoCameraNode</string>
          </stringlist>
         </property>
         <property name="noneEnabled">
@@ -134,11 +173,11 @@
         </property>
        </widget>
       </item>
-      <item row="4" column="1">
-       <widget class="qMRMLNodeComboBox" name="MRMLNodeComboBox_TipTransform">
+      <item row="1" column="1">
+       <widget class="qMRMLNodeComboBox" name="MRMLNodeComboBox_RightCamera">
         <property name="nodeTypes">
          <stringlist>
-          <string>vtkMRMLLinearTransformNode</string>
+          <string>vtkMRMLVideoCameraNode</string>
          </stringlist>
         </property>
         <property name="noneEnabled">
@@ -150,9 +189,6 @@
         <property name="removeEnabled">
          <bool>false</bool>
         </property>
-        <property name="editEnabled">
-         <bool>false</bool>
-        </property>
         <property name="renameEnabled">
          <bool>true</bool>
         </property>
@@ -161,10 +197,10 @@
         </property>
        </widget>
       </item>
-      <item row="4" column="0">
-       <widget class="QLabel" name="Label_TipTransform">
+      <item row="1" column="0">
+       <widget class="QLabel" name="Label_RightCamera">
         <property name="text">
-         <string>Tip Transform:</string>
+         <string>Right Camera:</string>
         </property>
        </widget>
       </item>
@@ -285,8 +321,8 @@
      <y>1</y>
     </hint>
     <hint type="destinationlabel">
-     <x>148</x>
-     <y>74</y>
+     <x>265</x>
+     <y>144</y>
     </hint>
    </hints>
   </connection>
@@ -301,15 +337,15 @@
      <y>4</y>
     </hint>
     <hint type="destinationlabel">
-     <x>268</x>
-     <y>97</y>
+     <x>265</x>
+     <y>170</y>
     </hint>
    </hints>
   </connection>
   <connection>
    <sender>qSlicerLeapCalibrationModuleWidget</sender>
    <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
-   <receiver>MRMLNodeComboBox_HMDTransform</receiver>
+   <receiver>MRMLNodeComboBox_TipToHMDTransform</receiver>
    <slot>setMRMLScene(vtkMRMLScene*)</slot>
    <hints>
     <hint type="sourcelabel">
@@ -317,24 +353,40 @@
      <y>4</y>
     </hint>
     <hint type="destinationlabel">
-     <x>118</x>
-     <y>126</y>
+     <x>246</x>
+     <y>196</y>
     </hint>
    </hints>
   </connection>
   <connection>
    <sender>qSlicerLeapCalibrationModuleWidget</sender>
    <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
-   <receiver>MRMLNodeComboBox_TipTransform</receiver>
+   <receiver>MRMLNodeComboBox_LeftCamera</receiver>
    <slot>setMRMLScene(vtkMRMLScene*)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>38</x>
-     <y>4</y>
+     <x>134</x>
+     <y>3</y>
     </hint>
     <hint type="destinationlabel">
-     <x>211</x>
-     <y>149</y>
+     <x>168</x>
+     <y>50</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>qSlicerLeapCalibrationModuleWidget</sender>
+   <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
+   <receiver>MRMLNodeComboBox_RightCamera</receiver>
+   <slot>setMRMLScene(vtkMRMLScene*)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>49</x>
+     <y>2</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>210</x>
+     <y>76</y>
     </hint>
    </hints>
   </connection>

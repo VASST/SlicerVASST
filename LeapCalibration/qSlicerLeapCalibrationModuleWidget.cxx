@@ -29,6 +29,9 @@
 #include <vtkMRMLNode.h>
 #include <vtkMRMLScalarVolumeNode.h>
 
+// SlicerVideoCamera includes
+#include <vtkMRMLVideoCameraNode.h>
+
 // VTK includes
 #include <vtkSmartPointer.h>
 
@@ -76,8 +79,9 @@ qSlicerLeapCalibrationModuleWidget::~qSlicerLeapCalibrationModuleWidget()
 
   disconnect(d->MRMLNodeComboBox_LeftImage, static_cast<void (qMRMLNodeComboBox::*)(vtkMRMLNode*)>(&qMRMLNodeComboBox::currentNodeChanged), this, &qSlicerLeapCalibrationModuleWidget::updateUI);
   disconnect(d->MRMLNodeComboBox_RightImage, static_cast<void (qMRMLNodeComboBox::*)(vtkMRMLNode*)>(&qMRMLNodeComboBox::currentNodeChanged), this, &qSlicerLeapCalibrationModuleWidget::updateUI);
-  disconnect(d->MRMLNodeComboBox_HMDTransform, static_cast<void (qMRMLNodeComboBox::*)(vtkMRMLNode*)>(&qMRMLNodeComboBox::currentNodeChanged), this, &qSlicerLeapCalibrationModuleWidget::updateUI);
-  disconnect(d->MRMLNodeComboBox_TipTransform, static_cast<void (qMRMLNodeComboBox::*)(vtkMRMLNode*)>(&qMRMLNodeComboBox::currentNodeChanged), this, &qSlicerLeapCalibrationModuleWidget::updateUI);
+  disconnect(d->MRMLNodeComboBox_LeftCamera, static_cast<void (qMRMLNodeComboBox::*)(vtkMRMLNode*)>(&qMRMLNodeComboBox::currentNodeChanged), this, &qSlicerLeapCalibrationModuleWidget::updateUI);
+  disconnect(d->MRMLNodeComboBox_RightCamera, static_cast<void (qMRMLNodeComboBox::*)(vtkMRMLNode*)>(&qMRMLNodeComboBox::currentNodeChanged), this, &qSlicerLeapCalibrationModuleWidget::updateUI);
+  disconnect(d->MRMLNodeComboBox_TipToHMDTransform, static_cast<void (qMRMLNodeComboBox::*)(vtkMRMLNode*)>(&qMRMLNodeComboBox::currentNodeChanged), this, &qSlicerLeapCalibrationModuleWidget::updateUI);
   disconnect(d->PushButton_StartStop, &QPushButton::clicked, this, &qSlicerLeapCalibrationModuleWidget::onStartStopButtonClicked);
   disconnect(d->PushButton_Reset, &QPushButton::clicked, this, &qSlicerLeapCalibrationModuleWidget::onResetButtonClicked);
   disconnect(d->DoubleSpinBox_Baseline, static_cast<void (QDoubleSpinBox::*)(double)>(&QDoubleSpinBox::valueChanged), this, &qSlicerLeapCalibrationModuleWidget::onBaselineChanged);
@@ -92,8 +96,9 @@ void qSlicerLeapCalibrationModuleWidget::setup()
 
   connect(d->MRMLNodeComboBox_LeftImage, static_cast<void (qMRMLNodeComboBox::*)(vtkMRMLNode*)>(&qMRMLNodeComboBox::currentNodeChanged), this, &qSlicerLeapCalibrationModuleWidget::updateUI);
   connect(d->MRMLNodeComboBox_RightImage, static_cast<void (qMRMLNodeComboBox::*)(vtkMRMLNode*)>(&qMRMLNodeComboBox::currentNodeChanged), this, &qSlicerLeapCalibrationModuleWidget::updateUI);
-  connect(d->MRMLNodeComboBox_HMDTransform, static_cast<void (qMRMLNodeComboBox::*)(vtkMRMLNode*)>(&qMRMLNodeComboBox::currentNodeChanged), this, &qSlicerLeapCalibrationModuleWidget::updateUI);
-  connect(d->MRMLNodeComboBox_TipTransform, static_cast<void (qMRMLNodeComboBox::*)(vtkMRMLNode*)>(&qMRMLNodeComboBox::currentNodeChanged), this, &qSlicerLeapCalibrationModuleWidget::updateUI);
+  connect(d->MRMLNodeComboBox_LeftCamera, static_cast<void (qMRMLNodeComboBox::*)(vtkMRMLNode*)>(&qMRMLNodeComboBox::currentNodeChanged), this, &qSlicerLeapCalibrationModuleWidget::updateUI);
+  connect(d->MRMLNodeComboBox_RightCamera, static_cast<void (qMRMLNodeComboBox::*)(vtkMRMLNode*)>(&qMRMLNodeComboBox::currentNodeChanged), this, &qSlicerLeapCalibrationModuleWidget::updateUI);
+  connect(d->MRMLNodeComboBox_TipToHMDTransform, static_cast<void (qMRMLNodeComboBox::*)(vtkMRMLNode*)>(&qMRMLNodeComboBox::currentNodeChanged), this, &qSlicerLeapCalibrationModuleWidget::updateUI);
   connect(d->PushButton_StartStop, &QPushButton::clicked, this, &qSlicerLeapCalibrationModuleWidget::onStartStopButtonClicked);
   connect(d->PushButton_Reset, &QPushButton::clicked, this, &qSlicerLeapCalibrationModuleWidget::onResetButtonClicked);
   connect(d->DoubleSpinBox_Baseline, static_cast<void (QDoubleSpinBox::*)(double)>(&QDoubleSpinBox::valueChanged), this, &qSlicerLeapCalibrationModuleWidget::onBaselineChanged);
@@ -105,15 +110,16 @@ void qSlicerLeapCalibrationModuleWidget::updateUI()
 {
   Q_D(qSlicerLeapCalibrationModuleWidget);
 
-  d->Logic->SetLeftImage(vtkMRMLScalarVolumeNode::SafeDownCast(d->MRMLNodeComboBox_LeftImage->currentNode()));
-  d->Logic->SetRightImage(vtkMRMLScalarVolumeNode::SafeDownCast(d->MRMLNodeComboBox_RightImage->currentNode()));
-  d->Logic->SetHMDTransform(vtkMRMLLinearTransformNode::SafeDownCast(d->MRMLNodeComboBox_HMDTransform->currentNode()));
-  d->Logic->SetTipTransform(vtkMRMLLinearTransformNode::SafeDownCast(d->MRMLNodeComboBox_TipTransform->currentNode()));
+  d->Logic->SetLeftImageNode(vtkMRMLScalarVolumeNode::SafeDownCast(d->MRMLNodeComboBox_LeftImage->currentNode()));
+  d->Logic->SetRightImageNode(vtkMRMLScalarVolumeNode::SafeDownCast(d->MRMLNodeComboBox_RightImage->currentNode()));
+  d->Logic->SetLeftCameraNode(vtkMRMLVideoCameraNode::SafeDownCast(d->MRMLNodeComboBox_LeftCamera->currentNode()));
+  d->Logic->SetRightCameraNode(vtkMRMLVideoCameraNode::SafeDownCast(d->MRMLNodeComboBox_RightCamera->currentNode()));
+  d->Logic->SetTipToHMDTransformNode(vtkMRMLLinearTransformNode::SafeDownCast(d->MRMLNodeComboBox_TipToHMDTransform->currentNode()));
 
   d->PushButton_StartStop->setEnabled(false);
-  if ((d->MRMLNodeComboBox_LeftImage->currentNode() != nullptr || d->MRMLNodeComboBox_RightImage->currentNode() != nullptr) &&
-      d->MRMLNodeComboBox_TipTransform->currentNode() != nullptr &&
-      d->MRMLNodeComboBox_HMDTransform->currentNode() != nullptr)
+  if (((d->MRMLNodeComboBox_LeftImage->currentNode() != nullptr && d->MRMLNodeComboBox_LeftCamera->currentNode() != nullptr) ||
+       d->MRMLNodeComboBox_RightImage->currentNode() != nullptr && d->MRMLNodeComboBox_RightCamera->currentNode() != nullptr) &&
+      d->MRMLNodeComboBox_TipToHMDTransform->currentNode() != nullptr)
   {
     d->PushButton_StartStop->setEnabled(true);
   }

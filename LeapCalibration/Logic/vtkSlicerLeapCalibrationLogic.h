@@ -34,6 +34,7 @@
 
 class vtkMRMLLinearTransformNode;
 class vtkMRMLScalarVolumeNode;
+class vtkMRMLVideoCameraNode;
 class vtkSlicerLeapCalibrationLogicInternal;
 
 /// \ingroup Slicer_QtModules_ExtensionTemplate
@@ -52,10 +53,11 @@ public:
   vtkTypeMacro(vtkSlicerLeapCalibrationLogic, vtkSlicerModuleLogic);
   void PrintSelf(ostream& os, vtkIndent indent);
 
-  void SetLeftImage(vtkMRMLScalarVolumeNode*);
-  void SetRightImage(vtkMRMLScalarVolumeNode*);
-  void SetHMDTransform(vtkMRMLLinearTransformNode*);
-  void SetTipTransform(vtkMRMLLinearTransformNode*);
+  void SetLeftImageNode(vtkMRMLScalarVolumeNode*);
+  void SetRightImageNode(vtkMRMLScalarVolumeNode*);
+  void SetLeftCameraNode(vtkMRMLVideoCameraNode*);
+  void SetRightCameraNode(vtkMRMLVideoCameraNode*);
+  void SetTipToHMDTransformNode(vtkMRMLLinearTransformNode*);
 
   void SetBaselineMm(double);
 
