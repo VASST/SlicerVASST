@@ -39,8 +39,8 @@ set(MODULE_UI_SRCS
   )
 
 set(MODULE_TARGET_LIBRARIES
-  vtkSlicer${MODULE_NAME}ModuleLogic
   opencv_videoio
+  vtkSlicer${MODULE_NAME}ModuleLogic
   vtkSlicerVideoCamerasModuleMRML
   )
 

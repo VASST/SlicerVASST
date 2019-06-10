@@ -79,6 +79,8 @@ public:
 
   void ThreadedSegmentationFunction();
 
+  bool SegmentImage(vtkImageData* image, vtkMRMLVideoCameraNode* camNode, double originOffsetMm);
+
 public:
   vtkMRMLScalarVolumeNode*    LeftImageNode;
   vtkMRMLScalarVolumeNode*    RightImageNode;
@@ -116,74 +118,26 @@ void vtkSlicerLeapCalibrationLogicInternal::ThreadedSegmentationFunction()
     this->AccessMutex.lock();
     if (this->LeftImageNode != nullptr && this->LeftCameraNode != nullptr && this->TipToHMDTransformNode != nullptr)
     {
-      // Segment, report location etc...
-      vtkImageData* left = this->LeftImageNode->GetImageData();
-      int cvType = 0;
-      switch (left->GetNumberOfScalarComponents())
+      if (SegmentImage(this->LeftImageNode->GetImageData(), this->LeftCameraNode, -this->LeapBaselineMm / 2))
       {
-        case 1:
-          cvType = CV_8UC1;
-          break;
-        case 3:
-          cvType = CV_8UC3;
-          break;
-        case 4:
-          cvType = CV_8UC4;
-          break;
+        this->InvokeEvent(vtkSlicerLeapCalibrationLogic::LeftImageSegmentedEvent);
       }
-      cv::Mat leftImage(left->GetDimensions()[0], left->GetDimensions()[1], cvType, left->GetScalarPointer());
-      if (left->GetNumberOfScalarComponents() > 1)
-      {
-        cv::cvtColor(leftImage, leftImage, cv::COLOR_BGR2GRAY);
-      }
-      std::vector<cv::Vec3d> circles;
-      cv::HoughCircles(leftImage, circles, cv::HOUGH_GRADIENT, 2, leftImage.rows / 4);
-      if (circles.size() > 0)
-      {
-        // Calculate ray from position
-        cv::Vec3d circle = circles[0];
-
-        // Origin - always +-baseline, 0, 0
-        cv::Vec3d origin_sen(-this->LeapBaselineMm, 0.0f, 0.0);
-        cv::Mat intrin(3, 3, CV_64F, this->LeftCameraNode->GetIntrinsicMatrix()->GetData());
-        cv::Mat dist(1, 5, CV_64F, this->LeftCameraNode->GetDistortionCoefficients()->GetVoidPointer(0));
-
-        // Calculate the direction vector for the given pixel (after undistortion)
-        cv::Mat undistPoint;
-        cv::undistortPoints(circle, undistPoint, intrin, dist, cv::noArray(), intrin);
-        undistPoint.at<double>(0, 2) = 1.0;
-        cv::Mat intrinInv = intrin.inv(cv::DECOMP_NORMAL);
-
-        // Find the inverse of the videoCamera intrinsic param matrix
-        // Calculate direction vector by multiplying the inverse of the intrinsic param matrix by the pixel
-        cv::Mat directionVec_sen = intrinInv * undistPoint / (intrinInv * undistPoint);
-
-        // And add it to the list!
-        this->Registration->AddLine(origin_sen[0], origin_sen[1], origin_sen[2], directionVec_sen.at<double>(0, 0), directionVec_sen.at<double>(0, 1), directionVec_sen.at<double>(0, 2));
-
-        // Grab stylus tip pose (tip to HMD)
-        vtkNew<vtkMatrix4x4> tipToHMD;
-        this->TipToHMDTransformNode->GetMatrixTransformToParent(tipToHMD);
-        this->Registration->AddPoint(tipToHMD->GetElement(0, 3), tipToHMD->GetElement(1, 3), tipToHMD->GetElement(2, 3));
-      }
-
-      this->InvokeEvent(vtkSlicerLeapCalibrationLogic::LeftImageSegmentedEvent);
     }
     this->AccessMutex.unlock();
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
     this->AccessMutex.lock();
     if (this->RightImageNode != nullptr && this->RightCameraNode != nullptr && this->TipToHMDTransformNode != nullptr)
     {
-      // Segment, report location etc...
-      //cv::HoughCircles(image, out, cv::HOUGH_GRADIENT, 1, 32);
-
-      this->InvokeEvent(vtkSlicerLeapCalibrationLogic::RightImageSegmentedEvent);
+      if (SegmentImage(this->RightImageNode->GetImageData(), this->RightCameraNode, -this->LeapBaselineMm / 2))
+      {
+        this->InvokeEvent(vtkSlicerLeapCalibrationLogic::RightImageSegmentedEvent);
+      }
     }
     this->AccessMutex.unlock();
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
     this->AccessMutex.lock();
     if (SegmentedImageCount >= MIN_SEGMENTED_IMAGE_TO_CALIBRATE)
@@ -193,6 +147,70 @@ void vtkSlicerLeapCalibrationLogicInternal::ThreadedSegmentationFunction()
     }
     this->AccessMutex.unlock();
   }
+}
+
+//----------------------------------------------------------------------------
+bool vtkSlicerLeapCalibrationLogicInternal::SegmentImage(vtkImageData* image, vtkMRMLVideoCameraNode* camNode, double originOffsetMm)
+{
+  // Segment, report location etc...
+  int cvType = 0;
+  switch (image->GetNumberOfScalarComponents())
+  {
+    case 1:
+      cvType = CV_8UC1;
+      break;
+    case 3:
+      cvType = CV_8UC3;
+      break;
+    case 4:
+      cvType = CV_8UC4;
+      break;
+  }
+  cv::Mat leftImage(image->GetDimensions()[0], image->GetDimensions()[1], cvType, image->GetScalarPointer());
+  if (image->GetNumberOfScalarComponents() > 1)
+  {
+    cv::cvtColor(leftImage, leftImage, cv::COLOR_BGR2GRAY);
+  }
+
+  // undistort image
+  cv::Mat intrin(3, 3, CV_64F, camNode->GetIntrinsicMatrix()->GetData());
+  cv::Mat dist(1, 5, CV_64F, camNode->GetDistortionCoefficients()->GetVoidPointer(0));
+  cv::Mat undistImage;
+  cv::undistort(leftImage, undistImage, intrin, dist, intrin);
+
+  std::vector<cv::Vec3d> circles;
+  cv::HoughCircles(undistImage, circles, cv::HOUGH_GRADIENT, 0.125, 1, 100.0, 6.0); // values empirically determined from experimentation
+  if (circles.size() > 0)
+  {
+    // Calculate ray from position
+    cv::Vec3d circle = circles[0];
+    std::cerr << "circle: " << circle[0] << ", " << circle[1] << std::endl;
+
+    // Origin - always +-baseline, 0, 0
+    cv::Vec3d origin_sen(originOffsetMm, 0.0, 0.0);
+
+    std::cerr << origin_sen << std::endl;
+    std::cerr << intrin << std::endl;
+    std::cerr << dist << std::endl;
+
+    // Calculate the direction vector for the given pixel
+    // Find the inverse of the videoCamera intrinsic param matrix
+    cv::Mat intrinInv = intrin.inv(cv::DECOMP_NORMAL);
+    // Calculate direction vector by multiplying the inverse of the intrinsic param matrix by the pixel
+    cv::Mat directionVec_sen = intrinInv * circle / cv::norm((intrinInv * circle), cv::NORM_L2);
+
+    // And add it to the list!
+    this->Registration->AddLine(origin_sen[0], origin_sen[1], origin_sen[2], directionVec_sen.at<double>(0, 0), directionVec_sen.at<double>(0, 1), directionVec_sen.at<double>(0, 2));
+
+    // Grab stylus tip pose (tip to HMD)
+    vtkNew<vtkMatrix4x4> tipToHMD;
+    this->TipToHMDTransformNode->GetMatrixTransformToParent(tipToHMD);
+    this->Registration->AddPoint(tipToHMD->GetElement(0, 3), tipToHMD->GetElement(1, 3), tipToHMD->GetElement(2, 3));
+
+    return true;
+  }
+
+  return false;
 }
 
 //----------------------------------------------------------------------------
