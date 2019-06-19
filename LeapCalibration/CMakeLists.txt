@@ -7,7 +7,7 @@ string(TOUPPER ${MODULE_NAME} MODULE_NAME_UPPER)
 
 find_package(SlicerOpenCV REQUIRED NO_MODULE)
 find_package(OpenCV REQUIRED NO_MODULE)
-find_package(VideoCameras REQUIRED NO_MODULE)
+find_package(SlicerVideoCameras REQUIRED NO_MODULE)
 
 #-----------------------------------------------------------------------------
 add_subdirectory(Logic)
