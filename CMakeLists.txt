@@ -10,7 +10,7 @@ set(EXTENSION_CONTRIBUTORS "Adam Rankin (Robarts Research Institute), Golafsoun 
 set(EXTENSION_DESCRIPTION "This extension contains a number of modules developed by the VASST laboratory at the Robarts Research Institute.")
 set(EXTENSION_ICONURL "https://raw.githubusercontent.com/VASST/SlicerVASST/master/docs/images/SlicerVASST_logo.png")
 set(EXTENSION_SCREENSHOTURLS "https://raw.githubusercontent.com/VASST/SlicerVASST/master/docs/images/screenshot.png")
-set(EXTENSION_DEPENDS "VASSTAlgorithms;SlicerIGT;SlicerVirtualReality;Sequences;SlicerOpenCV;SlicerVideoCameras")
+set(EXTENSION_DEPENDS "VASSTAlgorithms;SlicerIGT;SlicerVirtualReality;SlicerOpenCV;SlicerVideoCameras")
 set(EXTENSION_STATUS "Stable")
 
 #-----------------------------------------------------------------------------
@@ -22,7 +22,6 @@ include(${Slicer_USE_FILE})
 # Extension modules
 add_subdirectory(GuidedUSCal)
 add_subdirectory(VRVisionExperiment)
-add_subdirectory(LeapCalibration)
 ## NEXT_MODULE
 
 #-----------------------------------------------------------------------------
